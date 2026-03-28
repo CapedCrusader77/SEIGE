@@ -85,6 +85,7 @@ def test_attack_endpoints_schedule_background_tasks(monkeypatch):
     client.post("/attack/sql-injection")
     client.post("/attack/ddos")
     client.post("/attack/chain")
+    client.post("/attack/zero-day")
 
     assert captured == [
         "simulate_port_scan",
@@ -92,6 +93,7 @@ def test_attack_endpoints_schedule_background_tasks(monkeypatch):
         "simulate_sql_injection",
         "simulate_ddos",
         "simulate_attack_chain",
+        "simulate_zero_day",
     ]
 
 

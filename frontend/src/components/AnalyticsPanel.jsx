@@ -124,7 +124,7 @@ const AnalyticsPanel = memo(({
       return [{ time: "Start", score: 100 }];
     }
 
-    const startTime = securityScoreTimeline[0]?.timestamp || Date.now();
+    const startTime = securityScoreTimeline[0]?.timestamp ?? 0;
     return [
       { time: "0s", score: 100, fullTime: 0 },
       ...securityScoreTimeline.map((point) => {
@@ -143,7 +143,7 @@ const AnalyticsPanel = memo(({
   const breachMarkers = useMemo(() => {
     if (breachTimes.length === 0 || securityScoreTimeline.length === 0) return [];
     
-    const startTime = securityScoreTimeline[0]?.timestamp || breachTimes[0]?.timestamp || Date.now();
+    const startTime = securityScoreTimeline[0]?.timestamp ?? breachTimes[0]?.timestamp ?? 0;
     return breachTimes.map((breach) => {
       const elapsed = Math.round((breach.timestamp - startTime) / 1000);
       // Find corresponding score at this time
