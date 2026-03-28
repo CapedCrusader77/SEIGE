@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      SIEGE_HOST: "0.0.0.0"
+      SIEGE_PORT: "8000"
+      SIEGE_DB_PATH: "/data/siege_history.db"
+      SIEGE_REQUIRE_API_KEY: "false"
+      SIEGE_API_KEY: ""
+      SIEGE_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+    volumes:
+      - siege_data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "http://localhost:8000"
+      VITE_WS_URL: "ws://localhost:8000"
+      VITE_API_KEY: ""
+    depends_on:
+      - backend
+
+volumes:
+  siege_data:

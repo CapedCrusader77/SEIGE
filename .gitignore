@@ -1,0 +1,11 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Local environment files
+.env
+.env.*
+
+# Local runtime data
+*.db
+*.sqlite3
