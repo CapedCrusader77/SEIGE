@@ -35,6 +35,7 @@ const NetworkMap = memo(function NetworkMap({
   firewallEnabled,
   lastAttackEvent,
   nodeHitCounts = {},
+  zeroDayActive = false,
 }) {
   const svgRef = useRef(null);
   const particlesRef = useRef(null);
@@ -59,6 +60,7 @@ const NetworkMap = memo(function NetworkMap({
 
   const getNodeState = useCallback(
     (node) => {
+      if (zeroDayActive) return "zero-day";
       if (node.id === crashedNodeId) return "crashed";
       if (node.id === injectedNodeId || node.id === crackedNodeId) return "breached";
       if (node.id === sqlInjectionTarget || node.id === bruteForceTarget || node.id === scanningNodeId) return "targeted";
@@ -66,7 +68,7 @@ const NetworkMap = memo(function NetworkMap({
       if (node.id === "firewall" && firewallEnabled) return "firewall-active";
       return "normal";
     },
-    [bruteForceTarget, crackedNodeId, crashedNodeId, ddosTarget, firewallEnabled, injectedNodeId, scanningNodeId, sqlInjectionTarget],
+    [bruteForceTarget, crackedNodeId, crashedNodeId, ddosTarget, firewallEnabled, injectedNodeId, scanningNodeId, sqlInjectionTarget, zeroDayActive],
   );
 
   useEffect(() => {
@@ -232,7 +234,9 @@ const NetworkMap = memo(function NetworkMap({
       const state = getNodeState(node);
       const baseColor = NODE_COLORS[node.type] || "#ffffff";
       const strokeColor =
-        state === "crashed"
+        state === "zero-day"
+          ? "#ff0000"
+          : state === "crashed"
           ? "#596577"
           : state === "breached"
             ? "#ff5b5b"
@@ -247,8 +251,12 @@ const NetworkMap = memo(function NetworkMap({
       const heatIntensity = getHeatmapIntensity(node.id);
       const heatColor = heatIntensity > 0 ? `rgba(255, 91, 91, ${0.3 + heatIntensity * 0.7})` : strokeColor;
 
-      d3.select(element).select(".node-hex").attr("stroke", state !== "normal" ? strokeColor : heatColor);
-      d3.select(element).select(".node-core").attr("fill", strokeColor);
+      d3.select(element)
+        .select(".node-hex")
+        .attr("stroke", state !== "normal" ? strokeColor : heatColor)
+        .attr("fill", state === "zero-day" ? "#7f1d1d" : "rgba(5, 10, 18, 0.92)")
+        .attr("stroke-width", state === "zero-day" ? 3 : 1.8);
+      d3.select(element).select(".node-core").attr("fill", state === "zero-day" ? "#ff4d4d" : strokeColor);
       d3.select(element).selectAll(".node-ring").attr("stroke", strokeColor);
 
       const glowOpacity = state === "crashed" ? 0.04 : heatIntensity > 0 ? 0.16 + heatIntensity * 0.3 : 0.16;
@@ -256,7 +264,15 @@ const NetworkMap = memo(function NetworkMap({
       d3.select(element).select(".node-label").attr("fill", state === "crashed" ? "#64748b" : "#d3dfef");
 
       gsap.killTweensOf(element);
-      if (state === "targeted" || state === "ddos-target") {
+      if (state === "zero-day") {
+        gsap.to(element, {
+          x: 4,
+          duration: 0.08,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+        });
+      } else if (state === "targeted" || state === "ddos-target") {
         gsap.to(element, {
           x: "+=7",
           duration: 0.07,
@@ -272,7 +288,18 @@ const NetworkMap = memo(function NetworkMap({
         gsap.fromTo(element, { scale: 0.9, opacity: 0.7 }, { scale: 1.05, opacity: 1, duration: 0.65, ease: "power3.out" });
       }
     });
-  }, [getNodeState, getHeatmapIntensity, nodes, scanningNodeId, bruteForceTarget, crackedNodeId, sqlInjectionTarget, injectedNodeId, ddosTarget, ddosStatus, crashedNodeId, firewallEnabled, nodeHitCounts]);
+    d3.select(svgRef.current)
+      .selectAll(".link-base")
+      .attr("stroke", zeroDayActive ? "#ff3b3b" : LINK_COLOR)
+      .attr("stroke-width", zeroDayActive ? 2 : 1.35)
+      .classed("zero-day-link", zeroDayActive);
+
+    d3.select(svgRef.current)
+      .selectAll(".link-pulse")
+      .attr("stroke", zeroDayActive ? "#ff7a7a" : "rgba(255,255,255,0.72)")
+      .attr("stroke-width", zeroDayActive ? 1.8 : 1)
+      .classed("zero-day-link", zeroDayActive);
+  }, [getNodeState, getHeatmapIntensity, nodes, scanningNodeId, bruteForceTarget, crackedNodeId, sqlInjectionTarget, injectedNodeId, ddosTarget, ddosStatus, crashedNodeId, firewallEnabled, nodeHitCounts, zeroDayActive]);
 
   useEffect(() => {
     if (!lastAttackEvent || !svgRef.current || nodes.length === 0 || !particlesRef.current) return;

@@ -290,6 +290,10 @@ export const generateSessionReport = ({
   idsEnabled,
   historyEvents = [],
   securityScoreTimeline = [],
+  zeroDayExecuted = false,
+  zeroDayStats = null,
+  zeroDayTimeline = [],
+  sessionTime = "00:00:00",
 }) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -495,6 +499,85 @@ export const generateSessionReport = ({
       },
       margin: { left: 40, right: 40 },
     });
+  }
+
+  if (zeroDayExecuted) {
+    const stats = zeroDayStats || {
+      nodes_compromised: 5,
+      credentials_stolen: 847,
+      firewall_rules_bypassed: 12,
+      detection_evasions: 9,
+    };
+
+    doc.addPage();
+    doc.setFillColor(20, 0, 0);
+    doc.rect(0, 0, 595, 842, "F");
+    doc.setFillColor(127, 29, 29);
+    doc.rect(0, 0, 595, 74, "F");
+    doc.setFont("courier", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text("ZERO DAY EXECUTION REPORT", 40, 46);
+
+    doc.setFontSize(12);
+    doc.setTextColor(251, 146, 60);
+    doc.text("CVE-2024-SIEGE", 40, 110);
+    doc.setTextColor(224, 230, 240);
+    doc.text(`Execution Window: ${sessionTime}`, 40, 132);
+    doc.text("Summary: Classified exploit path bypassed defensive controls and forced total compromise.", 40, 154);
+
+    autoTable(doc, {
+      startY: 190,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Nodes Compromised", stats.nodes_compromised],
+        ["Credentials Exfiltrated", stats.credentials_stolen],
+        ["Firewall Rules Bypassed", stats.firewall_rules_bypassed],
+        ["Detection Evasions", stats.detection_evasions],
+      ],
+      theme: "grid",
+      styles: {
+        font: "courier",
+        fontSize: 10,
+        cellPadding: 6,
+        textColor: [224, 230, 240],
+        fillColor: [24, 5, 5],
+        lineColor: [127, 29, 29],
+      },
+      headStyles: {
+        fillColor: [127, 29, 29],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    autoTable(doc, {
+      startY: 340,
+      head: [["Phase Timeline"]],
+      body: (zeroDayTimeline.length
+        ? zeroDayTimeline.map((entry) => [entry])
+        : [["EXECUTING CVE-2024-SIEGE",], ["BYPASSING FIREWALL RULES...",], ["ALL SYSTEMS COMPROMISED... SIEGE COMPLETE",]]),
+      theme: "grid",
+      styles: {
+        font: "courier",
+        fontSize: 10,
+        cellPadding: 8,
+        textColor: [224, 230, 240],
+        fillColor: [24, 5, 5],
+        lineColor: [127, 29, 29],
+      },
+      headStyles: {
+        fillColor: [48, 10, 10],
+        textColor: [251, 146, 60],
+        fontStyle: "bold",
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.setFont("courier", "bold");
+    doc.setTextColor(255, 205, 205);
+    doc.text("CLASSIFICATION: TOP SECRET // SIEGE EYES ONLY", 40, 780);
   }
 
   const safeTimestamp = new Date(createdAt).toISOString().replace(/[:.]/g, "-");
