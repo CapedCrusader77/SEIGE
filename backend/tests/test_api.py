@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from siege.connection_manager import manager
+from siege.persistence import init_db
 from siege.state import state
 
 client = TestClient(app)
@@ -16,6 +17,7 @@ class DummyBackgroundTask:
 
 
 def reset_state() -> None:
+    init_db()
     state.is_attack_in_progress = False
     state.firewall_enabled = False
     state.ids_enabled = False
@@ -75,7 +77,7 @@ def test_attack_endpoints_schedule_background_tasks(monkeypatch):
     reset_state()
     captured = []
 
-    def fake_add_task(func, *args, **kwargs):
+    def fake_add_task(self, func, *args, **kwargs):
         captured.append(func.__name__)
 
     monkeypatch.setattr("fastapi.BackgroundTasks.add_task", fake_add_task)
@@ -98,6 +100,7 @@ def test_attack_endpoints_schedule_background_tasks(monkeypatch):
 
 
 def test_history_events_endpoint_returns_list():
+    init_db()
     response = client.get("/history/events?limit=10")
     assert response.status_code == 200
     payload = response.json()
