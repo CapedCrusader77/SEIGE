@@ -369,3 +369,47 @@ async def simulate_attack_chain() -> None:
         )
     finally:
         state.is_attack_in_progress = False
+
+
+async def simulate_zero_day() -> None:
+    if not await _guard_attack_start():
+        return
+
+    try:
+        await manager.broadcast({"type": "ZERO_DAY_START"})
+
+        phases = [
+            ("EXPLOITING ROUTER", "router", 0.3),
+            ("EXPLOITING FIREWALL", "firewall", 0.3),
+            ("EXPLOITING WEB SERVER", "webserver", 0.3),
+            ("EXPLOITING DATABASE", "database", 0.3),
+            ("EXPLOITING ADMIN PANEL", "admin", 0.3),
+            ("EXFILTRATING DATA", None, 0.4),
+            ("DEPLOYING BACKDOOR", None, 0.4),
+            ("COVERING TRACKS", None, 0.3),
+            ("ESTABLISHING PERSISTENCE", None, 0.3),
+        ]
+
+        for label, node_id, delay in phases:
+            await manager.broadcast(
+                {
+                    "type": "ZERO_DAY_PHASE",
+                    "label": label,
+                    "node": node_id,
+                }
+            )
+            await asyncio.sleep(delay)
+
+        await manager.broadcast(
+            {
+                "type": "ZERO_DAY_COMPLETE",
+                "stats": {
+                    "nodes_compromised": 5,
+                    "credentials_stolen": 847,
+                    "firewall_rules_bypassed": 12,
+                    "detection_evasions": 9,
+                },
+            }
+        )
+    finally:
+        state.is_attack_in_progress = False

@@ -16,6 +16,7 @@ from siege.simulations import (
     simulate_ddos,
     simulate_port_scan,
     simulate_sql_injection,
+    simulate_zero_day,
 )
 from siege.state import state
 
@@ -84,6 +85,12 @@ async def start_ddos(background_tasks: BackgroundTasks, _auth: None = Depends(pr
 async def start_attack_chain(background_tasks: BackgroundTasks, _auth: None = Depends(protect_control_plane)) -> Dict[str, str]:
     background_tasks.add_task(simulate_attack_chain)
     return {"status": "Attack chain initiated"}
+
+
+@app.post("/attack/zero-day")
+async def start_zero_day(background_tasks: BackgroundTasks, _auth: None = Depends(protect_control_plane)) -> Dict[str, str]:
+    background_tasks.add_task(simulate_zero_day)
+    return {"status": "Zero day initiated"}
 
 
 @app.post("/defense/firewall/toggle")

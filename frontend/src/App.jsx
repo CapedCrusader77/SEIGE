@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatePresence, animate, motion as Motion, useMotionValue } from "framer-motion";
 import Lenis from "lenis";
+import gsap from "gsap";
+import { TextPlugin } from "gsap/TextPlugin";
 import NetworkMap from "./components/NetworkMap";
 import LoadingScreen from "./components/LoadingScreen";
 import HeroSection from "./components/HeroSection";
@@ -11,8 +13,12 @@ import TerminalPanel from "./components/TerminalPanel";
 import IdsAlertStack from "./components/IdsAlertStack";
 import CustomCursor from "./components/CustomCursor";
 import AnalyticsPanel from "./components/AnalyticsPanel";
+import ZeroDayUnlock from "./components/ZeroDayUnlock";
+import ZeroDayComplete from "./components/ZeroDayComplete";
 import { API_BASE_URL, CONTROL_API_HEADERS, WS_URL } from "./config";
 import { generateSessionReport } from "./utils/reportGenerator";
+
+gsap.registerPlugin(TextPlugin);
 
 const NODE_LABELS = {
   router: "Router",
@@ -54,6 +60,25 @@ const ATTACK_STYLES = {
 };
 
 const PANEL_TRANSITION = { ease: [0.22, 1, 0.36, 1], duration: 0.9 };
+const ZERO_DAY_LOGS = [
+  { tag: "ZERO", text: "EXPLOITING ROUTER...", result: "COMPROMISED", type: "danger" },
+  { tag: "ZERO", text: "EXPLOITING FIREWALL...", result: "BYPASSED", type: "danger" },
+  { tag: "ZERO", text: "EXPLOITING WEB SERVER...", result: "COMPROMISED", type: "danger" },
+  { tag: "ZERO", text: "EXPLOITING DATABASE...", result: "COMPROMISED", type: "danger" },
+  { tag: "ZERO", text: "EXPLOITING ADMIN PANEL...", result: "COMPROMISED", type: "danger" },
+  { tag: "ZERO", text: "EXFILTRATING DATA...", result: "847 RECORDS STOLEN", type: "warning" },
+  { tag: "ZERO", text: "DEPLOYING BACKDOOR...", result: "INSTALLED", type: "danger" },
+  { tag: "ZERO", text: "COVERING TRACKS...", result: "LOGS CLEARED", type: "warning" },
+  { tag: "ZERO", text: "ESTABLISHING PERSISTENCE...", result: "COMPLETE", type: "danger" },
+  { tag: "ZERO", text: "ALL SYSTEMS COMPROMISED...", result: "SIEGE COMPLETE", type: "danger" },
+];
+
+const ZERO_DAY_DEFAULT_STATS = {
+  nodes_compromised: 5,
+  credentials_stolen: 847,
+  firewall_rules_bypassed: 12,
+  detection_evasions: 9,
+};
 
 const formatSessionClock = (elapsedMs) => {
   const totalSeconds = Math.floor(elapsedMs / 1000);
@@ -120,8 +145,7 @@ export default function App() {
   const [blockedCount, setBlockedCount] = useState(0);
   const [compromisedNodeIds, setCompromisedNodeIds] = useState(() => new Set());
   const [isExporting, setIsExporting] = useState(false);
-  // Setter intentionally retained to preserve the existing session state contract.
-  const [sessionStartTime] = useState(Date.now());
+  const [sessionStartTime, setSessionStartTime] = useState(Date.now());
   const [sessionTime, setSessionTime] = useState("00:00:00");
   const [packetsIntercepted, setPacketsIntercepted] = useState(0);
   const [lastPacketUpdate, setLastPacketUpdate] = useState(Date.now());
@@ -134,14 +158,32 @@ export default function App() {
   const [edgeFlashColor, setEdgeFlashColor] = useState("");
   const [edgeFlashKey, setEdgeFlashKey] = useState(0);
   const [attackHistory, setAttackHistory] = useState([]);
+  const [zeroDayActive, setZeroDayActive] = useState(false);
+  const [zeroDayPhase, setZeroDayPhase] = useState(null);
+  const [zeroDayStats, setZeroDayStats] = useState(ZERO_DAY_DEFAULT_STATS);
+  const [zeroDayTintVisible, setZeroDayTintVisible] = useState(false);
+  const [zeroDayOverlayVisible, setZeroDayOverlayVisible] = useState(false);
+  const [zeroDayLogsInjected, setZeroDayLogsInjected] = useState(false);
+  const [zeroDayTimelineEntries, setZeroDayTimelineEntries] = useState([]);
 
   const dashboardRef = useRef(null);
   const activeAttackRef = useRef(null);
+  const zeroDaySequenceStartedRef = useRef(false);
+  const zeroDaySequenceRef = useRef(null);
+  const zeroDayOverlayRef = useRef(null);
+  const zeroDayLineRef = useRef(null);
+  const zeroDayTopTextRef = useRef(null);
+  const zeroDayBottomTextRef = useRef(null);
+  const zeroDayDisabledRef = useRef(null);
   const currentAttackMetricsRef = useRef({
     attack: null,
     successCounted: false,
     blockedCounted: false,
   });
+
+  const zeroDayUnlocked = useMemo(() => {
+    return crackedNodeId !== null && injectedNodeId !== null && crashedNodeId !== null && securityScore < 40;
+  }, [crackedNodeId, injectedNodeId, crashedNodeId, securityScore]);
 
   const topMetrics = useMemo(
     () => [
@@ -184,6 +226,60 @@ export default function App() {
       next.add(nodeId);
       return next;
     });
+  }, []);
+
+  const addLogEntry = useCallback((entry) => {
+    setLogs((prev) => [...prev, entry]);
+  }, []);
+
+  const resetSystemState = useCallback(() => {
+    zeroDaySequenceRef.current?.kill();
+    zeroDaySequenceRef.current = null;
+    zeroDaySequenceStartedRef.current = false;
+    setLogs([]);
+    setSessionEvents([]);
+    setScanningNodeId(null);
+    setIsScanning(false);
+    setBruteForceTarget(null);
+    setCrackedNodeId(null);
+    setSqlInjectionTarget(null);
+    setInjectedNodeId(null);
+    setDdosTarget(null);
+    setDdosStatus(null);
+    setDdosRequestCount(0);
+    setCrashedNodeId(null);
+    setFirewallEnabled(false);
+    setIdsEnabled(false);
+    setIdsAlerts([]);
+    setSecurityScore(100);
+    setLastAttackEvent(null);
+    setAttacksCount(0);
+    setSuccessCount(0);
+    setBlockedCount(0);
+    setCompromisedNodeIds(new Set());
+    setIsExporting(false);
+    setSessionStartTime(Date.now());
+    setSessionTime("00:00:00");
+    setPacketsIntercepted(0);
+    setLastPacketUpdate(Date.now());
+    setNodeHitCounts({});
+    setSecurityScoreTimeline([]);
+    setBreachTimes([]);
+    setAttackChainActive(false);
+    setChainPhase(null);
+    setEdgeFlashColor("");
+    setEdgeFlashKey(0);
+    setAttackHistory([]);
+    setZeroDayActive(false);
+    setZeroDayPhase(null);
+    setZeroDayStats(ZERO_DAY_DEFAULT_STATS);
+    setZeroDayTintVisible(false);
+    setZeroDayOverlayVisible(false);
+    setZeroDayLogsInjected(false);
+    setZeroDayTimelineEntries([]);
+    activeAttackRef.current = null;
+    currentAttackMetricsRef.current = { attack: null, successCounted: false, blockedCounted: false };
+    gsap.set([zeroDayOverlayRef.current, zeroDayLineRef.current, zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { clearProps: "all" });
   }, []);
 
   useEffect(() => {
@@ -499,6 +595,42 @@ export default function App() {
             setChainPhase(null);
             addLog("CHAIN", "ATTACK CHAIN COMPLETE - ALL PHASES EXECUTED", "success");
           }
+
+          if (data.type === "ZERO_DAY_START") {
+            addSessionEvent({
+              attack: "Zero Day",
+              phase: "ZERO_DAY_START",
+              targetId: null,
+              targetLabel: null,
+              outcome: "STARTED",
+              details: "CVE-2024-SIEGE authorization accepted",
+            });
+          }
+
+          if (data.type === "ZERO_DAY_PHASE") {
+            setZeroDayTimelineEntries((prev) => [...prev, data.label]);
+            addSessionEvent({
+              attack: "Zero Day",
+              phase: "ZERO_DAY_PHASE",
+              targetId: data.node,
+              targetLabel: data.node ? NODE_LABELS[data.node] || data.node : null,
+              outcome: data.node ? "COMPROMISED" : "EXECUTING",
+              details: data.label,
+            });
+          }
+
+          if (data.type === "ZERO_DAY_COMPLETE") {
+            setZeroDayStats(data.stats || ZERO_DAY_DEFAULT_STATS);
+            setZeroDayTimelineEntries((prev) => [...prev, "ALL SYSTEMS COMPROMISED... SIEGE COMPLETE"]);
+            addSessionEvent({
+              attack: "Zero Day",
+              phase: "ZERO_DAY_COMPLETE",
+              targetId: null,
+              targetLabel: null,
+              outcome: "COMPLETE",
+              details: "Total system compromise confirmed",
+            });
+          }
         } catch (err) {
           console.error("WebSocket message error:", err);
         }
@@ -516,6 +648,106 @@ export default function App() {
       if (ws) ws.close();
     };
   }, [addLog, addSessionEvent, markCompromisedNode]);
+
+  useEffect(() => {
+    if (zeroDayPhase !== "authorized" || zeroDaySequenceStartedRef.current) return undefined;
+
+    zeroDaySequenceStartedRef.current = true;
+    setZeroDayPhase("executing");
+    setZeroDayOverlayVisible(true);
+    setZeroDayTintVisible(true);
+
+    fetch(`${API_BASE_URL}/attack/zero-day`, {
+      method: "POST",
+      headers: CONTROL_API_HEADERS,
+    }).catch(() => {
+      addLog("ERROR", "Failed to initiate zero day payload", "danger");
+    });
+
+    const scoreState = { value: securityScore };
+    const allNodeIds = ["router", "firewall", "webserver", "database", "admin"];
+    const timeline = gsap.timeline({
+      onComplete: () => {
+        setZeroDayPhase("complete");
+      },
+    });
+
+    zeroDaySequenceRef.current = timeline;
+    setZeroDayTimelineEntries((prev) => [...prev, "EXECUTING CVE-2024-SIEGE"]);
+
+    gsap.set(zeroDayOverlayRef.current, { opacity: 0 });
+    gsap.set(zeroDayLineRef.current, { scaleX: 0, transformOrigin: "left center", opacity: 1 });
+    gsap.set([zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { opacity: 0 });
+
+    timeline
+      .to(zeroDayOverlayRef.current, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0)
+      .to(zeroDayLineRef.current, { scaleX: 1, duration: 1.2, ease: "power2.inOut" }, 0.5)
+      .to(zeroDayTopTextRef.current, { duration: 0.5, text: "EXECUTING CVE-2024-SIEGE", opacity: 1, ease: "none" }, 1.7)
+      .to(zeroDayBottomTextRef.current, { duration: 0.45, text: "BYPASSING FIREWALL RULES...", opacity: 1, ease: "none" }, 2.2)
+      .to(zeroDayLineRef.current, { keyframes: [{ y: -8 }, { y: 8 }, { y: -5 }, { y: 5 }, { y: 0 }], duration: 0.28, ease: "power1.inOut" }, 2.8)
+      .to(zeroDayDisabledRef.current, { opacity: 1, duration: 0.25, ease: "power2.out" }, 3.2)
+      .call(() => {
+        if (!zeroDayLogsInjected) {
+          ZERO_DAY_LOGS.forEach((entry, index) => {
+            timeline.call(() => {
+              addLogEntry({
+                timestamp: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+                tag: entry.tag,
+                text: `${entry.text} ${entry.result}`,
+                type: entry.type,
+              });
+            }, null, 3.6 + index * 0.1);
+          });
+          setZeroDayLogsInjected(true);
+        }
+      }, null, 3.55)
+      .call(() => {
+        setEdgeFlashColor("rgba(255, 0, 0, 0.9)");
+        setEdgeFlashKey((prev) => prev + 1);
+      }, null, 4.8)
+      .call(() => {
+        setZeroDayActive(true);
+        setCompromisedNodeIds(new Set(allNodeIds));
+        setCrackedNodeId("admin");
+        setInjectedNodeId("database");
+        setCrashedNodeId("webserver");
+      }, null, 5.0)
+      .to(scoreState, {
+        value: 0,
+        duration: 1,
+        ease: "power4.out",
+        onUpdate: () => {
+          const nextScore = Math.max(0, Math.round(scoreState.value));
+          setSecurityScore(nextScore);
+        },
+      }, 5.2)
+      .call(() => {
+        setSuccessCount((prev) => prev + 1);
+        setSecurityScoreTimeline((prev) => [...prev, { timestamp: Date.now(), score: 0, event: "Zero Day Execution" }]);
+        setAttackHistory((prev) => {
+          const updated = [...prev];
+          const lastAttack = updated[updated.length - 1];
+          if (lastAttack && !lastAttack.success) {
+            lastAttack.success = true;
+            lastAttack.endTime = Date.now();
+          }
+          return updated;
+        });
+      }, null, 5.25)
+      .to(zeroDayOverlayRef.current, { opacity: 0.4, duration: 0.5, ease: "power2.out" }, 5.5);
+
+    return () => timeline.kill();
+  }, [addLog, addLogEntry, securityScore, zeroDayLogsInjected, zeroDayPhase]);
+
+  const handleAuthorizeZeroDay = useCallback(() => {
+    if (zeroDayPhase !== null) return;
+    setAttacksCount((prev) => prev + 1);
+    setAttackHistory((prev) => [
+      ...prev,
+      { id: Date.now(), type: "zero-day", timestamp: Date.now(), startTime: Date.now(), success: false },
+    ]);
+    setZeroDayPhase("authorized");
+  }, [zeroDayPhase]);
 
   const triggerEdgeFlash = (attackType) => {
     const flash = ATTACK_STYLES[attackType]?.flash;
@@ -591,6 +823,10 @@ export default function App() {
         idsEnabled,
         historyEvents,
         securityScoreTimeline,
+        zeroDayExecuted: zeroDayPhase === "complete",
+        zeroDayStats,
+        zeroDayTimeline: zeroDayTimelineEntries,
+        sessionTime,
       });
       addLog("EXPORT", "Session PDF report generated.", "success");
     } catch (err) {
@@ -630,7 +866,37 @@ export default function App() {
 
           <IdsAlertStack alerts={idsAlerts} onDismiss={dismissAlert} />
 
+          <AnimatePresence>
+            {zeroDayUnlocked && zeroDayPhase === null ? (
+              <ZeroDayUnlock key="zero-day-unlock" visible={zeroDayUnlocked} phase={zeroDayPhase} onAuthorize={handleAuthorizeZeroDay} />
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {zeroDayOverlayVisible ? (
+              <Motion.div
+                key="zero-day-overlay"
+                className={`zero-day-sequence-overlay ${zeroDayPhase === "complete" ? "is-complete" : ""}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div ref={zeroDayOverlayRef} className="zero-day-overlay-dim" />
+                <div className="zero-day-sequence-center">
+                  <div ref={zeroDayTopTextRef} className="zero-day-sequence-text top" />
+                  <div ref={zeroDayLineRef} className="zero-day-sequence-line" />
+                  <div ref={zeroDayBottomTextRef} className="zero-day-sequence-text bottom" />
+                  <div ref={zeroDayDisabledRef} className="zero-day-firewall-disabled">
+                    <span>FIREWALL DISABLED</span>
+                    <i />
+                  </div>
+                </div>
+              </Motion.div>
+            ) : null}
+          </AnimatePresence>
+
           <main className="siege-shell">
+            {zeroDayTintVisible ? <div className="zero-day-dashboard-tint" /> : null}
             <HeroSection onScrollDown={scrollToDashboard} isScanning={isScanning} />
             <section ref={dashboardRef} className="dashboard-section">
               <div className="dashboard-header-shell">
@@ -685,6 +951,7 @@ export default function App() {
                         firewallEnabled={firewallEnabled}
                         lastAttackEvent={lastAttackEvent}
                         nodeHitCounts={nodeHitCounts}
+                        zeroDayActive={zeroDayActive}
                       />
                       <div className="map-hud map-hud-top">
                         <span>Threat vectors synced</span>
@@ -801,6 +1068,19 @@ export default function App() {
               </Motion.section>
             </section>
           </main>
+
+          <AnimatePresence>
+            {zeroDayPhase === "complete" ? (
+              <ZeroDayComplete
+                key="zero-day-complete"
+                visible={zeroDayPhase === "complete"}
+                stats={zeroDayStats}
+                sessionTime={sessionTime}
+                onGenerateReport={handleExportReport}
+                onResetSystem={resetSystemState}
+              />
+            ) : null}
+          </AnimatePresence>
         </>
       )}
     </div>
