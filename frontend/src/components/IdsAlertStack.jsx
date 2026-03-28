@@ -1,33 +1,40 @@
+import { memo } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
+import useSiegeStore from "../store/siegeStore";
 
-export default function IdsAlertStack({ alerts, onDismiss }) {
+const IdsAlertStack = memo(function IdsAlertStack() {
+  const idsAlerts = useSiegeStore(s => s.idsAlerts);
+  const removeIdsAlert = useSiegeStore(s => s.removeIdsAlert);
+
   return (
-    <div className="ids-stack">
-      <AnimatePresence initial={false}>
-        {alerts.map((alert) => (
-          <Motion.button
+    <div className="ids-alert-stack">
+      <AnimatePresence>
+        {idsAlerts.map((alert) => (
+          <Motion.div
             key={alert.id}
-            type="button"
-            className="ids-alert"
-            onClick={() => onDismiss(alert.id)}
-            initial={{ opacity: 0, x: 120, y: -20 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, x: 160 }}
-            transition={{ type: "spring", stiffness: 420, damping: 28 }}
-            whileHover={{ x: 8 }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 220 }}
-            dragElastic={0.15}
-            onDragEnd={(_, info) => {
-              if (info.offset.x > 90) onDismiss(alert.id);
-            }}
+            className={`ids-alert-item ${alert.severity === "CRITICAL" ? "critical" : "warning"}`}
+            initial={{ opacity: 0, x: 50, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 20, scale: 0.9, transition: { duration: 0.2 } }}
+            layout
           >
-            <div className="ids-alert-kicker">IDS ALERT</div>
-            <strong>{alert.threat}</strong>
-            <span>Severity: {alert.severity}</span>
-          </Motion.button>
+            <div className="alert-header">
+              <span className="alert-tag">IDS_INTRUSION_ALERT</span>
+              <button className="alert-close" onClick={() => removeIdsAlert(alert.id)}>
+                &times;
+              </button>
+            </div>
+            <div className="alert-threat">{alert.threat}</div>
+            <div className="alert-meta">
+              <span>SOURCE: {alert.source || "EXTERNAL"}</span>
+              <span className="alert-severity">{alert.severity}</span>
+            </div>
+            <div className="alert-progress-bar" />
+          </Motion.div>
         ))}
       </AnimatePresence>
     </div>
   );
-}
+});
+
+export default IdsAlertStack;

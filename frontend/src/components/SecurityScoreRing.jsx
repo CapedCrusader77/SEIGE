@@ -1,54 +1,76 @@
-import { useEffect } from "react";
-import { animate, motion as Motion, useMotionValue, useTransform } from "framer-motion";
+import { memo, useEffect, useState } from "react";
+import { animate, motion as Motion, useMotionValue } from "framer-motion";
+import useSiegeStore from "../store/siegeStore";
 
-const RADIUS = 62;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-const getTone = (value) => {
-  if (value >= 80) return "#41ff9b";
-  if (value >= 50) return "#ffb141";
-  return "#ff5b5b";
-};
-
-export default function SecurityScoreRing({ value }) {
-  const motionValue = useMotionValue(value);
-  const rounded = useTransform(motionValue, (latest) => Math.round(latest));
-  const progress = useTransform(motionValue, (latest) => CIRCUMFERENCE - (latest / 100) * CIRCUMFERENCE);
-  const ringColor = getTone(value);
+const SecurityScoreRing = memo(function SecurityScoreRing() {
+  const securityScore = useSiegeStore(s => s.securityScore);
+  const motionValue = useMotionValue(100);
+  const [displayScore, setDisplayScore] = useState(100);
 
   useEffect(() => {
-    const controls = animate(motionValue, value, {
-      duration: 0.9,
-      ease: [0.22, 1, 0.36, 1],
+    const unsubscribe = motionValue.on("change", (latest) => {
+      setDisplayScore(Math.round(latest));
     });
-    return () => controls.stop();
-  }, [motionValue, value]);
+    const controls = animate(motionValue, securityScore, { duration: 1.2, ease: [0.22, 1, 0.36, 1] });
+    return () => { unsubscribe(); controls.stop(); };
+  }, [motionValue, securityScore]);
+
+  const getScoreStatus = (score) => {
+    if (score > 75) return "CRYPTO_SECURE";
+    if (score > 45) return "PERIMETER_PROBED";
+    if (score > 20) return "NETWORK_CRITICAL";
+    return "SYSTEM_COMPROMISED";
+  };
+
+  const getScoreColor = (score) => {
+    if (score > 75) return "var(--green)";
+    if (score > 45) return "var(--amber)";
+    return "var(--red)";
+  };
 
   return (
-    <Motion.div
-      className={`score-ring-shell ${value < 50 ? "danger" : value < 80 ? "warning" : "healthy"}`}
-      animate={value < 50 ? { x: [0, -5, 5, -3, 3, 0] } : { x: 0 }}
-      transition={{ duration: 0.45 }}
-    >
-      <svg viewBox="0 0 180 180" className="score-ring-svg">
-        <circle cx="90" cy="90" r={RADIUS} className="score-ring-track" />
-        <Motion.circle
-          cx="90"
-          cy="90"
-          r={RADIUS}
-          className="score-ring-progress"
-          style={{
-            stroke: ringColor,
-            strokeDasharray: CIRCUMFERENCE,
-            strokeDashoffset: progress,
-          }}
-        />
-      </svg>
-
-      <div className="score-ring-center">
-        <Motion.span style={{ color: ringColor }}>{rounded}</Motion.span>
-        <small>system integrity</small>
+    <div className="security-score-card">
+      <div className="card-header">
+        <span className="status-label">GLOBAL SECURITY POSTURE</span>
+        <span className="status-meta">v3.9 // LIVE</span>
       </div>
-    </Motion.div>
+
+      <div className="score-main">
+        <div className="score-ring-container">
+          <svg className="score-ring-svg" viewBox="0 0 100 100">
+            <circle className="ring-bg" cx="50" cy="50" r="44" />
+            <Motion.circle
+              className="ring-progress"
+              cx="50"
+              cy="50"
+              r="44"
+              initial={{ pathLength: 1 }}
+              animate={{ pathLength: displayScore / 100 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              style={{ stroke: getScoreColor(displayScore) }}
+            />
+          </svg>
+          <div className="score-value-container">
+            <span className="score-value">{displayScore}</span>
+            <span className="score-percent">%</span>
+          </div>
+        </div>
+
+        <div className="score-details">
+          <div className="detail-status" style={{ color: getScoreColor(displayScore) }}>
+            {getScoreStatus(displayScore)}
+          </div>
+          <p className="detail-summary">
+            Real-time aggregate metric of network integrity, firewall effectiveness, and node stability.
+          </p>
+          <div className="detail-meta">
+            <span>UPTIME: 14:02:11</span>
+            <span>LATENCY: 12ms</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+});
+
+export default SecurityScoreRing;
