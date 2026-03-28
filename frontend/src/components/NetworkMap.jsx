@@ -23,20 +23,21 @@ const hexagonPath = (radius) => {
   return `M ${points.map((point) => point.join(",")).join(" L ")} Z`;
 };
 
-const NetworkMap = memo(function NetworkMap({
-  scanningNodeId,
-  bruteForceTarget,
-  crackedNodeId,
-  sqlInjectionTarget,
-  injectedNodeId,
-  ddosTarget,
-  ddosStatus,
-  crashedNodeId,
-  firewallEnabled,
-  lastAttackEvent,
-  nodeHitCounts = {},
-  zeroDayActive = false,
-}) {
+const NetworkMap = memo(function NetworkMap() {
+  const store = useSiegeStore();
+  
+  // Extract state from store
+  const scanningNodeId = store.scanningNodeId;
+  const bruteForceTarget = store.bruteForceTarget;
+  const crackedNodeId = store.crackedNodeId;
+  const sqlInjectionTarget = store.sqlInjectionTarget;
+  const injectedNodeId = store.injectedNodeId;
+  const ddosTarget = store.ddosTarget;
+  const crashedNodeId = store.crashedNodeId;
+  const firewallEnabled = store.firewallEnabled;
+  const zeroDayActive = store.zeroDayActive;
+  const nodeHitCounts = store.nodeHitCounts || {};
+
   const svgRef = useRef(null);
   const particlesRef = useRef(null);
   const nodeElementsRef = useRef(new Map());

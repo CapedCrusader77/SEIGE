@@ -1,104 +1,79 @@
-/* Zero day UI: bottom classified banner with a 3-second hold-to-authorize control and a clearer post-hold authorized state. */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion as Motion } from "framer-motion";
-import gsap from "gsap";
+import { memo, useState, useEffect, useRef } from "react";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import useZeroDay from "../hooks/useZeroDay";
 
-const HOLD_DURATION_MS = 3000;
-
-export default function ZeroDayUnlock({ visible, phase, onAuthorize }) {
-  const [isHolding, setIsHolding] = useState(false);
+const ZeroDayUnlock = memo(function ZeroDayUnlock() {
+  const { zeroDayUnlocked, zeroDayPhase, handleAuthorize, refs } = useZeroDay();
   const [holdProgress, setHoldProgress] = useState(0);
-  const [didAuthorize, setDidAuthorize] = useState(false);
-  const holdStartRef = useRef(0);
-  const frameRef = useRef(0);
-  const buttonRef = useRef(null);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimerRef = useRef(null);
 
-  const buttonLabel = useMemo(() => {
-    if (phase === "executing") return "EXECUTING PAYLOAD...";
-    if (phase === "authorized" || didAuthorize) return "AUTHORIZED — INITIALIZING SEQUENCE";
-    if (isHolding) return "AUTHORIZING...";
-    return "HOLD TO AUTHORIZE ZERO DAY";
-  }, [didAuthorize, isHolding, phase]);
-
-
-  const stopHoldLoop = () => {
-    if (frameRef.current) {
-      window.cancelAnimationFrame(frameRef.current);
-      frameRef.current = 0;
+  useEffect(() => {
+    if (isHolding) {
+      const startTime = Date.now();
+      holdTimerRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / 3000, 1);
+        setHoldProgress(progress);
+        if (progress >= 1) {
+          clearInterval(holdTimerRef.current);
+          handleAuthorize();
+        }
+      }, 50);
+    } else {
+      clearInterval(holdTimerRef.current);
+      setHoldProgress(0);
     }
-  };
+    return () => clearInterval(holdTimerRef.current);
+  }, [isHolding, handleAuthorize]);
 
-  const resetHold = (withShake = false) => {
-    stopHoldLoop();
-    setIsHolding(false);
-    setHoldProgress(0);
-    if (withShake && buttonRef.current) {
-      gsap.fromTo(buttonRef.current, { x: 0 }, { x: 0, keyframes: [{ x: -6 }, { x: 6 }, { x: -4 }, { x: 4 }, { x: 0 }], duration: 0.35, ease: "power2.out" });
-    }
-  };
-
-  useEffect(() => () => stopHoldLoop(), []);
-
-  if (!visible) return null;
-
-  const beginHold = () => {
-    if (phase || isHolding) return;
-    holdStartRef.current = performance.now();
-    setIsHolding(true);
-
-    const tick = (now) => {
-      const progress = Math.min(1, (now - holdStartRef.current) / HOLD_DURATION_MS);
-      setHoldProgress(progress);
-      if (progress >= 1) {
-        stopHoldLoop();
-        setIsHolding(false);
-        setDidAuthorize(true);
-        onAuthorize?.();
-        return;
-      }
-      frameRef.current = window.requestAnimationFrame(tick);
-    };
-
-    frameRef.current = window.requestAnimationFrame(tick);
-  };
-
-  const cancelHold = () => {
-    if (!isHolding) return;
-    resetHold(true);
-  };
+  if (!zeroDayUnlocked && zeroDayPhase === null) return null;
 
   return (
-    <Motion.aside
-      className="zero-day-unlock"
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="zero-day-unlock-grid">
-        <div className="zero-day-unlock-heading">
-          <span className="warning-blink">⚠</span>
-          <strong>CLASSIFIED PAYLOAD UNLOCKED</strong>
-          <span className="warning-blink">⚠</span>
-        </div>
-        <div className="zero-day-unlock-divider" />
-        <p>Network integrity critically compromised.</p>
-        <p className="zero-day-cve">CVE-2024-SIEGE: Unknown vulnerability detected.</p>
-        <p>This exploit bypasses all firewall rules.</p>
-        <button
-          ref={buttonRef}
-          type="button"
-          className="zero-day-hold-button"
-          onPointerDown={beginHold}
-          onPointerUp={cancelHold}
-          onPointerLeave={cancelHold}
-          onPointerCancel={cancelHold}
-          disabled={phase === "authorized" || phase === "executing" || phase === "complete"}
+    <AnimatePresence>
+      {zeroDayPhase === null && (
+        <Motion.div
+          className="zero-day-unlock"
+          initial={{ y: 150, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 200, opacity: 0 }}
         >
-          <span className="zero-day-hold-fill" style={{ transform: `scaleX(${holdProgress})` }} />
-          <span className="zero-day-hold-label">{buttonLabel}</span>
-        </button>
-      </div>
-    </Motion.aside>
+          <div className="unlock-header">
+            <span className="unlock-warning">CLASSIFIED VULNERABILITY DETECTED</span>
+            <span className="unlock-id">CVE-2024-SIEGE</span>
+          </div>
+
+          <div className="unlock-body">
+            <p>CRITICAL EXPLOITS CONFIRMED. SYSTEM OVERRIDE AUTHORIZATION REQUIRED.</p>
+
+            <button
+              className={`authorize-btn ${isHolding ? "holding" : ""}`}
+              onPointerDown={() => setIsHolding(true)}
+              onPointerUp={() => setIsHolding(false)}
+              onPointerLeave={() => setIsHolding(false)}
+              onPointerCancel={() => setIsHolding(false)}
+            >
+              <div className="btn-background" style={{ transform: `scaleX(${holdProgress})` }} />
+              <span className="btn-label">{isHolding ? "AUTHORIZING..." : "HOLD TO AUTHORIZE"}</span>
+            </button>
+          </div>
+        </Motion.div>
+      )}
+
+      {zeroDayPhase === "executing" && (
+        <div className="zero-day-overlay-dim" ref={refs.overlay}>
+          <div className="zero-day-content">
+            <div className="zero-day-line" ref={refs.line} />
+            <div className="zero-day-text-top" ref={refs.topText} />
+            <div className="zero-day-text-bottom" ref={refs.bottomText} />
+            <div className="zero-day-disabled-status" ref={refs.disabled}>
+              FIREWALL DISABLED
+            </div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
   );
-}
+});
+
+export default ZeroDayUnlock;

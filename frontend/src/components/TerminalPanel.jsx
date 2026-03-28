@@ -1,125 +1,58 @@
-/* UI overhaul: rebuilt the terminal into a faux OS console with a decorative title bar, wipe-clear animation, structured log columns, and footer prompt telemetry. */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion as Motion } from "framer-motion";
-import gsap from "gsap";
+import { memo, useEffect, useRef } from "react";
+import { motion as Motion } from "framer-motion";
+import useSiegeStore from "../store/siegeStore";
 
-const RESULT_TOKENS = ["OPEN", "CLOSED", "CRACKED", "BLOCKED", "INJECTED", "FAILED", "CRASHED", "OVERLOADING", "EXFILTRATED", "COMPLETED", "STARTED", "TARGETED", "SCANNING", "SUCCESS"];
-
-const extractResult = (log) => {
-  const combined = `${log.tag} ${log.text}`.toUpperCase();
-  const match = RESULT_TOKENS.find((token) => combined.includes(token));
-  return match ?? log.type.toUpperCase();
-};
-
-function AnimatedLogLine({ log, isLast }) {
-  const result = useMemo(() => extractResult(log), [log]);
-
-  return (
-    <Motion.div
-      className="terminal-line"
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-    >
-      <span className="timestamp">{log.timestamp}</span>
-      <span className={`tag ${log.type}`}>[{log.tag}]</span>
-      <span className="terminal-text">
-        {log.text}
-        {isLast ? <span className="terminal-cursor">█</span> : null}
-      </span>
-      <span className={`terminal-result terminal-result-${result.toLowerCase()}`}>{result}</span>
-    </Motion.div>
-  );
-}
-
-export default function TerminalPanel({ logs, onClear, onExport, isExporting = false }) {
-  const terminalRef = useRef(null);
-  const contentRef = useRef(null);
-  const [isClearing, setIsClearing] = useState(false);
+const TerminalPanel = memo(function TerminalPanel() {
+  const logs = useSiegeStore(s => s.logs);
+  const clearLogs = useSiegeStore(s => s.clearLogs);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    terminalRef.current?.scrollTo({ top: terminalRef.current.scrollHeight, behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [logs]);
 
-  const handleClear = () => {
-    if (isClearing || !contentRef.current) return;
-    setIsClearing(true);
-
-    gsap.fromTo(
-      contentRef.current,
-      { clipPath: "inset(0 0 0% 0)", opacity: 1 },
-      {
-        clipPath: "inset(100% 0 0% 0)",
-        opacity: 0.4,
-        duration: 0.22,
-        ease: "power2.in",
-        onComplete: () => {
-          onClear?.();
-          gsap.set(contentRef.current, { clipPath: "inset(0 0 100% 0)" });
-          gsap.to(contentRef.current, {
-            clipPath: "inset(0 0 0% 0)",
-            opacity: 1,
-            duration: 0.24,
-            ease: "power2.out",
-            onComplete: () => setIsClearing(false),
-          });
-        },
-      },
-    );
-  };
-
   return (
-    <div className="terminal-panel-wrapper">
-      <div className="terminal-header">
-        <div className="terminal-dots">
-          <span className="terminal-dot red" />
-          <span className="terminal-dot amber" />
-          <span className="terminal-dot green" />
+    <div className="terminal-panel">
+      <div className="panel-header">
+        <div className="header-left">
+          <div className="terminal-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 17l6-6-6-6" />
+              <path d="M12 19h8" />
+            </svg>
+          </div>
+          <span>LIVE AUDIT LOG</span>
         </div>
-        <div className="terminal-header-title">SIEGE TERMINAL v2.0</div>
-        <div className="terminal-header-actions">
-          <button type="button" className="terminal-action" onClick={handleClear}>
-            CLEAR
-          </button>
-          <button type="button" className="terminal-action" onClick={onExport} disabled={isExporting}>
-            {isExporting ? "BUILDING" : "EXPORT"}
-          </button>
-        </div>
+        <button className="clear-logs-btn" onClick={clearLogs}>
+          CLEAR
+        </button>
       </div>
 
-      <div ref={terminalRef} className="terminal-panel">
-        <div ref={contentRef} className="terminal-content">
-          <AnimatePresence initial={false}>
-            {logs.length === 0 ? (
-              <Motion.div
-                key="empty"
-                className="terminal-empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                SYSTEM IDLE. AWAITING INSTRUCTION...
-              </Motion.div>
-            ) : (
-              logs.map((log, index) => (
-                <AnimatedLogLine
-                  key={`${log.timestamp}-${index}-${log.text}`}
-                  log={log}
-                  isLast={index === logs.length - 1}
-                />
-              ))
-            )}
-          </AnimatePresence>
-        </div>
+      <div className="terminal-scroller" ref={scrollRef}>
+        {logs.length === 0 ? (
+          <div className="terminal-empty">WAITING FOR COMPROMISE VECTOR...</div>
+        ) : (
+          logs.map((log, i) => (
+            <div key={i} className={`terminal-line ${log.type || "info"}`}>
+              <span className="line-time">[{log.timestamp}]</span>
+              <span className="line-tag">[{log.tag}]</span>
+              <span className="line-text">{log.text}</span>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="terminal-footer">
-        <span className="terminal-footer-prompt">root@siege:~$</span>
-        <span className="terminal-footer-bar">░░░░░░░░░░░░░░░░</span>
-        <span>LINES: {logs.length}</span>
-        <span>STATUS: {logs.length ? "STREAMING" : "IDLE"}</span>
+        <div className="footer-status">
+          <span className="status-dot pulsing" />
+          CONNECTION SECURE
+        </div>
+        <div className="footer-meta">UTF-8 // AES-256-GCM</div>
       </div>
     </div>
   );
-}
+});
+
+export default TerminalPanel;

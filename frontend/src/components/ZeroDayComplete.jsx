@@ -1,16 +1,14 @@
-/* Zero day UI: final compromise overlay with counted summary stats, report generation, and full session reset controls. */
-import { useEffect, useRef, useState } from "react";
-import { motion as Motion } from "framer-motion";
+import { memo, useEffect, useState } from "react";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
+import useSiegeStore from "../store/siegeStore";
+import useZeroDay from "../hooks/useZeroDay";
 
-const DEFAULT_STATS = {
-  nodes_compromised: 5,
-  credentials_stolen: 847,
-  firewall_rules_bypassed: 12,
-  detection_evasions: 9,
-};
+const ZeroDayComplete = memo(function ZeroDayComplete() {
+  const zeroDayPhase = useSiegeStore(s => s.zeroDayPhase);
+  const stats = useSiegeStore(s => s.zeroDayStats);
+  const { handleResetSystem } = useZeroDay();
 
-export default function ZeroDayComplete({ visible, stats = DEFAULT_STATS, sessionTime, onGenerateReport, onResetSystem }) {
   const [displayStats, setDisplayStats] = useState({
     nodes_compromised: 0,
     credentials_stolen: 0,
@@ -18,15 +16,15 @@ export default function ZeroDayComplete({ visible, stats = DEFAULT_STATS, sessio
     detection_evasions: 0,
   });
   const [threatProgress, setThreatProgress] = useState(0);
-  const countersRef = useRef(null);
+
+  const visible = zeroDayPhase === "complete";
 
   useEffect(() => {
-    if (!visible) return undefined;
+    if (!visible) return;
 
     const counterState = { ...displayStats, threat: 0 };
     const timeline = gsap.timeline();
 
-    // Use a helper to update the state from GSAP
     const updateStats = () => {
       setDisplayStats({
         nodes_compromised: Math.round(counterState.nodes_compromised),
@@ -36,7 +34,6 @@ export default function ZeroDayComplete({ visible, stats = DEFAULT_STATS, sessio
       });
     };
 
-    // Stagger the counters: count up one-by-one
     timeline
       .to(counterState, { nodes_compromised: stats.nodes_compromised, duration: 0.6, ease: "power2.out", onUpdate: updateStats })
       .to(counterState, { credentials_stolen: stats.credentials_stolen, duration: 0.8, ease: "power2.out", onUpdate: updateStats }, "+=0.1")
@@ -44,52 +41,70 @@ export default function ZeroDayComplete({ visible, stats = DEFAULT_STATS, sessio
       .to(counterState, { detection_evasions: stats.detection_evasions, duration: 0.6, ease: "power2.out", onUpdate: updateStats }, "+=0.1")
       .to(counterState, { threat: 1, duration: 1.2, ease: "power2.inOut", onUpdate: () => setThreatProgress(counterState.threat) }, "-=0.2");
 
-    return () => {
-      timeline.kill();
-    };
-
-  }, [displayStats, stats, visible]);
+    return () => { timeline.kill(); };
+  }, [visible, stats]);
 
   if (!visible) return null;
 
   return (
-    <Motion.div
-      className="zero-day-complete"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div ref={countersRef} className="zero-day-complete-card">
-        <div className="zero-day-complete-header">
-          <h2>TOTAL SYSTEM COMPROMISE</h2>
-          <div className="zero-day-complete-divider" />
-          <div className="zero-day-complete-cve">CVE-2024-SIEGE SUCCESSFULLY EXECUTED</div>
-        </div>
-
-        <div className="zero-day-stats-table">
-          <div>NODES COMPROMISED............... {displayStats.nodes_compromised} / 5</div>
-          <div>CREDENTIALS EXFILTRATED......... {displayStats.credentials_stolen}</div>
-          <div>FIREWALL RULES BYPASSED......... {displayStats.firewall_rules_bypassed}</div>
-          <div>DETECTION EVASIONS.............. {displayStats.detection_evasions}</div>
-          <div>TIME TO TOTAL COMPROMISE........ {sessionTime}</div>
-        </div>
-
-        <div className="zero-day-threat-wrap">
-          <div className="zero-day-threat-bar">
-            <span style={{ width: `${threatProgress * 100}%` }} />
+    <AnimatePresence>
+      <Motion.div
+        className="zero-day-complete-overlay"
+        initial={{ opacity: 0, scale: 1.1 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+      >
+        <div className="complete-content">
+          <div className="complete-header">
+            <span className="header-status">ALL SYSTEMS COMPROMISED</span>
+            <span className="header-title">SIEGE_COMPLETE</span>
           </div>
-          <strong>THREAT LEVEL: OMEGA</strong>
-        </div>
 
-        <div className="zero-day-actions">
-          <button type="button" className="zero-day-action-button report" onClick={onGenerateReport}>
-            GENERATE REPORT
-          </button>
-          <button type="button" className="zero-day-action-button reset" onClick={onResetSystem}>
-            RESET SYSTEM
-          </button>
+          <div className="complete-stats">
+            <div className="stat-row">
+              <span className="stat-label">NODES COMPROMISED</span>
+              <span className="stat-dots">................</span>
+              <span className="stat-value">{displayStats.nodes_compromised} / 5</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">CREDENTIALS EXFILTRATED</span>
+              <span className="stat-dots">................</span>
+              <span className="stat-value">{displayStats.credentials_stolen}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">FIREWALL RULES BYPASSED</span>
+              <span className="stat-dots">................</span>
+              <span className="stat-value">{displayStats.firewall_rules_bypassed}</span>
+            </div>
+            <div className="stat-row">
+              <span className="stat-label">DETECTION EVASIONS</span>
+              <span className="stat-dots">................</span>
+              <span className="stat-value">{displayStats.detection_evasions}</span>
+            </div>
+          </div>
+
+          <div className="complete-threat-level">
+            <div className="threat-header">
+              <span>CURRENT THREAT LEVEL</span>
+              <span className="level">OMEGA</span>
+            </div>
+            <div className="zero-day-threat-bar">
+              <span style={{ width: `${threatProgress * 100}%` }} />
+            </div>
+          </div>
+
+          <div className="complete-actions">
+            <button type="button" className="zero-day-action-button reset" onClick={handleResetSystem}>
+              RESET SYSTEM
+            </button>
+            <button type="button" className="zero-day-action-button export" onClick={() => window.print()}>
+              EXPORT CLASSIFIED REPORT
+            </button>
+          </div>
         </div>
-      </div>
-    </Motion.div>
+      </Motion.div>
+    </AnimatePresence>
   );
-}
+});
+
+export default ZeroDayComplete;
