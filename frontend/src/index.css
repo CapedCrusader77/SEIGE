@@ -17,7 +17,10 @@
   --premium-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-* { box-sizing: border-box; cursor: none !important; }
+* { box-sizing: border-box; }
+a, button, [role="button"] { cursor: pointer; }
+.siege-app { cursor: crosshair; }
+
 html { scroll-behavior: auto; }
 body {
   margin: 0;
@@ -328,6 +331,7 @@ button, input, textarea, select { font: inherit; }
   color: #fff;
   overflow: hidden;
 }
+.zero-day-hold-button:disabled { opacity: 1; }
 .zero-day-hold-fill { position: absolute; inset: 0; transform-origin: left center; background: linear-gradient(90deg, rgba(255,91,91,0.3), #ff5b5b); }
 .zero-day-hold-label { position: relative; z-index: 1; font-family: "Space Mono", monospace; letter-spacing: 0.18em; text-transform: uppercase; }
 .zero-day-sequence-overlay {
@@ -336,10 +340,11 @@ button, input, textarea, select { font: inherit; }
   z-index: 145;
   pointer-events: none;
 }
-.zero-day-overlay-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.95); }
+.zero-day-overlay-dim { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+
 .zero-day-sequence-center { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(90vw, 760px); text-align: center; }
 .zero-day-sequence-line { height: 1px; background: #fff; opacity: 0; }
-.zero-day-sequence-text { min-height: 1.3rem; margin: 1rem 0; font-family: "Space Mono", monospace; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.72); }
+.zero-day-sequence-text { min-height: 1.3rem; margin: 1rem 0; font-family: "Space Mono", monospace; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.72); text-shadow: 0 0 18px rgba(255,255,255,0.12); }
 .zero-day-sequence-text.top { color: var(--orange); }
 .zero-day-firewall-disabled { position: relative; display: inline-flex; align-items: center; justify-content: center; margin-top: 1rem; color: var(--red); font-family: "Space Mono", monospace; letter-spacing: 0.24em; text-transform: uppercase; }
 .zero-day-firewall-disabled i { position: absolute; left: -4%; right: -4%; height: 2px; background: currentColor; transform: rotate(-8deg); }

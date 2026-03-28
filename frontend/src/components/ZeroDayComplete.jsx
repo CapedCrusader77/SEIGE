@@ -25,30 +25,29 @@ export default function ZeroDayComplete({ visible, stats = DEFAULT_STATS, sessio
 
     const counterState = { ...displayStats, threat: 0 };
     const timeline = gsap.timeline();
-    timeline.to(counterState, {
-      nodes_compromised: stats.nodes_compromised,
-      credentials_stolen: stats.credentials_stolen,
-      firewall_rules_bypassed: stats.firewall_rules_bypassed,
-      detection_evasions: stats.detection_evasions,
-      duration: 1.8,
-      ease: "power3.out",
-      onUpdate: () => {
-        setDisplayStats({
-          nodes_compromised: Math.round(counterState.nodes_compromised),
-          credentials_stolen: Math.round(counterState.credentials_stolen),
-          firewall_rules_bypassed: Math.round(counterState.firewall_rules_bypassed),
-          detection_evasions: Math.round(counterState.detection_evasions),
-        });
-      },
-    });
-    timeline.to(counterState, {
-      threat: 1,
-      duration: 1.2,
-      ease: "power2.out",
-      onUpdate: () => setThreatProgress(counterState.threat),
-    }, 0.4);
 
-    return () => timeline.kill();
+    // Use a helper to update the state from GSAP
+    const updateStats = () => {
+      setDisplayStats({
+        nodes_compromised: Math.round(counterState.nodes_compromised),
+        credentials_stolen: Math.round(counterState.credentials_stolen),
+        firewall_rules_bypassed: Math.round(counterState.firewall_rules_bypassed),
+        detection_evasions: Math.round(counterState.detection_evasions),
+      });
+    };
+
+    // Stagger the counters: count up one-by-one
+    timeline
+      .to(counterState, { nodes_compromised: stats.nodes_compromised, duration: 0.6, ease: "power2.out", onUpdate: updateStats })
+      .to(counterState, { credentials_stolen: stats.credentials_stolen, duration: 0.8, ease: "power2.out", onUpdate: updateStats }, "+=0.1")
+      .to(counterState, { firewall_rules_bypassed: stats.firewall_rules_bypassed, duration: 0.6, ease: "power2.out", onUpdate: updateStats }, "+=0.1")
+      .to(counterState, { detection_evasions: stats.detection_evasions, duration: 0.6, ease: "power2.out", onUpdate: updateStats }, "+=0.1")
+      .to(counterState, { threat: 1, duration: 1.2, ease: "power2.inOut", onUpdate: () => setThreatProgress(counterState.threat) }, "-=0.2");
+
+    return () => {
+      timeline.kill();
+    };
+
   }, [displayStats, stats, visible]);
 
   if (!visible) return null;

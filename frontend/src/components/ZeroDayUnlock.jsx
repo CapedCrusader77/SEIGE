@@ -1,4 +1,4 @@
-/* Zero day UI: bottom classified banner with a 3-second hold-to-authorize control that unlocks the cinematic execution sequence. */
+/* Zero day UI: bottom classified banner with a 3-second hold-to-authorize control and a clearer post-hold authorized state. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion as Motion } from "framer-motion";
 import gsap from "gsap";
@@ -8,15 +8,18 @@ const HOLD_DURATION_MS = 3000;
 export default function ZeroDayUnlock({ visible, phase, onAuthorize }) {
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [didAuthorize, setDidAuthorize] = useState(false);
   const holdStartRef = useRef(0);
   const frameRef = useRef(0);
   const buttonRef = useRef(null);
 
   const buttonLabel = useMemo(() => {
-    if (phase === "authorized" || phase === "executing" || phase === "complete") return "AUTHORIZED";
+    if (phase === "executing") return "EXECUTING PAYLOAD...";
+    if (phase === "authorized" || didAuthorize) return "AUTHORIZED — INITIALIZING SEQUENCE";
     if (isHolding) return "AUTHORIZING...";
     return "HOLD TO AUTHORIZE ZERO DAY";
-  }, [isHolding, phase]);
+  }, [didAuthorize, isHolding, phase]);
+
 
   const stopHoldLoop = () => {
     if (frameRef.current) {
@@ -39,7 +42,7 @@ export default function ZeroDayUnlock({ visible, phase, onAuthorize }) {
   if (!visible) return null;
 
   const beginHold = () => {
-    if (phase) return;
+    if (phase || isHolding) return;
     holdStartRef.current = performance.now();
     setIsHolding(true);
 
@@ -49,6 +52,7 @@ export default function ZeroDayUnlock({ visible, phase, onAuthorize }) {
       if (progress >= 1) {
         stopHoldLoop();
         setIsHolding(false);
+        setDidAuthorize(true);
         onAuthorize?.();
         return;
       }
@@ -85,11 +89,10 @@ export default function ZeroDayUnlock({ visible, phase, onAuthorize }) {
           ref={buttonRef}
           type="button"
           className="zero-day-hold-button"
-          onMouseDown={beginHold}
-          onMouseUp={cancelHold}
-          onMouseLeave={cancelHold}
-          onTouchStart={beginHold}
-          onTouchEnd={cancelHold}
+          onPointerDown={beginHold}
+          onPointerUp={cancelHold}
+          onPointerLeave={cancelHold}
+          onPointerCancel={cancelHold}
           disabled={phase === "authorized" || phase === "executing" || phase === "complete"}
         >
           <span className="zero-day-hold-fill" style={{ transform: `scaleX(${holdProgress})` }} />
