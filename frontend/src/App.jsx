@@ -264,23 +264,44 @@ export default function App() {
     setLastPacketUpdate(Date.now());
     setNodeHitCounts({});
     setSecurityScoreTimeline([]);
-    setBreachTimes([]);
-    setAttackChainActive(false);
-    setChainPhase(null);
-    setEdgeFlashColor("");
-    setEdgeFlashKey(0);
-    setAttackHistory([]);
-    setZeroDayActive(false);
-    setZeroDayPhase(null);
-    setZeroDayStats(ZERO_DAY_DEFAULT_STATS);
-    setZeroDayTintVisible(false);
-    setZeroDayOverlayVisible(false);
-    setZeroDayLogsInjected(false);
-    setZeroDayTimelineEntries([]);
-    activeAttackRef.current = null;
-    currentAttackMetricsRef.current = { attack: null, successCounted: false, blockedCounted: false };
-    gsap.set([zeroDayOverlayRef.current, zeroDayLineRef.current, zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { clearProps: "all" });
+    // Cinematic reverse reset
+    if (zeroDaySequenceRef.current) {
+      zeroDaySequenceRef.current.kill();
+      zeroDaySequenceRef.current = null;
+    }
+
+    const resetTimeline = gsap.timeline({
+      onComplete: () => {
+        setAttacksCount(0);
+        setSuccessCount(0);
+        setBlockedCount(0);
+        setCompromisedNodeIds(new Set());
+        setSecurityScore(100);
+        setLogs([]);
+        setSessionEvents([]);
+        setCrackedNodeId(null);
+        setInjectedNodeId(null);
+        setCrashedNodeId(null);
+        setZeroDayActive(false);
+        setZeroDayPhase(null);
+        setZeroDayOverlayVisible(false);
+        setZeroDayTintVisible(false);
+        setZeroDayLogsInjected(false);
+        setZeroDayStats(ZERO_DAY_DEFAULT_STATS);
+        setZeroDayTimelineEntries([]);
+        zeroDaySequenceStartedRef.current = false;
+
+        gsap.set([zeroDayOverlayRef.current, zeroDayLineRef.current, zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { clearProps: "all" });
+      }
+    });
+
+    resetTimeline
+      .to([zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { opacity: 0, duration: 0.3 })
+      .to(zeroDayLineRef.current, { scaleX: 0, duration: 0.5, ease: "power2.in" })
+      .to(zeroDayOverlayRef.current, { opacity: 0, duration: 0.4 });
+
   }, []);
+
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowLoader(false), 4200);
@@ -650,42 +671,60 @@ export default function App() {
   }, [addLog, addSessionEvent, markCompromisedNode]);
 
   useEffect(() => {
-    if (zeroDayPhase !== "authorized" || zeroDaySequenceStartedRef.current) return undefined;
-
+    if (zeroDayPhase !== "authorized" || zeroDaySequenceStartedRef.current) return;
     zeroDaySequenceStartedRef.current = true;
-    setZeroDayPhase("executing");
-    setZeroDayOverlayVisible(true);
-    setZeroDayTintVisible(true);
+    const timer = setTimeout(() => {
+      setZeroDayPhase("executing");
+      setZeroDayOverlayVisible(true);
+      setZeroDayTintVisible(true);
+      fetch(`${API_BASE_URL}/attack/zero-day`, {
+        method: "POST",
+        headers: CONTROL_API_HEADERS,
+      }).catch(() => addLog("ERROR", "Failed to initiate zero day payload", "danger"));
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [addLog, zeroDayPhase]);
 
-    fetch(`${API_BASE_URL}/attack/zero-day`, {
-      method: "POST",
-      headers: CONTROL_API_HEADERS,
-    }).catch(() => {
-      addLog("ERROR", "Failed to initiate zero day payload", "danger");
-    });
+  useEffect(() => {
 
-    const scoreState = { value: securityScore };
-    const allNodeIds = ["router", "firewall", "webserver", "database", "admin"];
+    if (zeroDayPhase !== "executing" || !zeroDayOverlayVisible || !zeroDayOverlayRef.current) return;
+    if (zeroDaySequenceRef.current) return;
+
+    // Use refs/local variables for values that change but shouldn't trigger restart
+    const initialScore = securityScore;
+    const scoreState = { value: initialScore };
+
     const timeline = gsap.timeline({
-      onComplete: () => {
-        setZeroDayPhase("complete");
-      },
+      onComplete: () => setZeroDayPhase("complete"),
     });
-
     zeroDaySequenceRef.current = timeline;
-    setZeroDayTimelineEntries((prev) => [...prev, "EXECUTING CVE-2024-SIEGE"]);
 
+    // T+0.0s - Screen dims
     gsap.set(zeroDayOverlayRef.current, { opacity: 0 });
     gsap.set(zeroDayLineRef.current, { scaleX: 0, transformOrigin: "left center", opacity: 1 });
     gsap.set([zeroDayTopTextRef.current, zeroDayBottomTextRef.current, zeroDayDisabledRef.current], { opacity: 0 });
 
     timeline
       .to(zeroDayOverlayRef.current, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0)
+      
+      // T+0.5s - Horizontal line draws (1.2s duration)
       .to(zeroDayLineRef.current, { scaleX: 1, duration: 1.2, ease: "power2.inOut" }, 0.5)
-      .to(zeroDayTopTextRef.current, { duration: 0.5, text: "EXECUTING CVE-2024-SIEGE", opacity: 1, ease: "none" }, 1.7)
-      .to(zeroDayBottomTextRef.current, { duration: 0.45, text: "BYPASSING FIREWALL RULES...", opacity: 1, ease: "none" }, 2.2)
+      
+      // T+1.7s - Typewriter text above line
+      .set(zeroDayTopTextRef.current, { opacity: 1 }, 1.7)
+      .to(zeroDayTopTextRef.current, { duration: 0.5, text: "EXECUTING CVE-2024-SIEGE", ease: "none" }, 1.7)
+      
+      // T+2.2s - Typewriter text below line
+      .set(zeroDayBottomTextRef.current, { opacity: 1 }, 2.2)
+      .to(zeroDayBottomTextRef.current, { duration: 0.45, text: "BYPASSING FIREWALL RULES...", ease: "none" }, 2.2)
+      
+      // T+2.8s - Line glitches
       .to(zeroDayLineRef.current, { keyframes: [{ y: -8 }, { y: 8 }, { y: -5 }, { y: 5 }, { y: 0 }], duration: 0.28, ease: "power1.inOut" }, 2.8)
+      
+      // T+3.2s - Firewall disabled
       .to(zeroDayDisabledRef.current, { opacity: 1, duration: 0.25, ease: "power2.out" }, 3.2)
+      
+      // T+3.6s - Rapid fire terminal logs
       .call(() => {
         if (!zeroDayLogsInjected) {
           ZERO_DAY_LOGS.forEach((entry, index) => {
@@ -701,43 +740,40 @@ export default function App() {
           setZeroDayLogsInjected(true);
         }
       }, null, 3.55)
+      
+      // T+4.8s - Red flood
       .call(() => {
         setEdgeFlashColor("rgba(255, 0, 0, 0.9)");
         setEdgeFlashKey((prev) => prev + 1);
       }, null, 4.8)
+      
+      // T+5.0s - Node compromise
       .call(() => {
         setZeroDayActive(true);
-        setCompromisedNodeIds(new Set(allNodeIds));
+        setCompromisedNodeIds(new Set(["router", "firewall", "webserver", "database", "admin"]));
         setCrackedNodeId("admin");
         setInjectedNodeId("database");
         setCrashedNodeId("webserver");
       }, null, 5.0)
+      
+      // T+5.2s - Dramatic score drain
       .to(scoreState, {
         value: 0,
-        duration: 1,
+        duration: 1.5,
         ease: "power4.out",
-        onUpdate: () => {
-          const nextScore = Math.max(0, Math.round(scoreState.value));
-          setSecurityScore(nextScore);
-        },
+        onUpdate: () => setSecurityScore(Math.max(0, Math.round(scoreState.value))),
       }, 5.2)
-      .call(() => {
-        setSuccessCount((prev) => prev + 1);
-        setSecurityScoreTimeline((prev) => [...prev, { timestamp: Date.now(), score: 0, event: "Zero Day Execution" }]);
-        setAttackHistory((prev) => {
-          const updated = [...prev];
-          const lastAttack = updated[updated.length - 1];
-          if (lastAttack && !lastAttack.success) {
-            lastAttack.success = true;
-            lastAttack.endTime = Date.now();
-          }
-          return updated;
-        });
-      }, null, 5.25)
+      
+      // T+5.5s - Overlay fades slightly
       .to(zeroDayOverlayRef.current, { opacity: 0.4, duration: 0.5, ease: "power2.out" }, 5.5);
 
-    return () => timeline.kill();
-  }, [addLog, addLogEntry, securityScore, zeroDayLogsInjected, zeroDayPhase]);
+    return () => {
+      // NOTE: We don't kill on dependency changes to fix the loop.
+      // The timeline will play to completion.
+    };
+  }, [zeroDayPhase, zeroDayOverlayVisible, addLogEntry, zeroDayLogsInjected]);
+
+
 
   const handleAuthorizeZeroDay = useCallback(() => {
     if (zeroDayPhase !== null) return;
@@ -867,7 +903,7 @@ export default function App() {
           <IdsAlertStack alerts={idsAlerts} onDismiss={dismissAlert} />
 
           <AnimatePresence>
-            {zeroDayUnlocked && zeroDayPhase === null ? (
+            {zeroDayUnlocked && (zeroDayPhase === null || zeroDayPhase === "authorized") ? (
               <ZeroDayUnlock key="zero-day-unlock" visible={zeroDayUnlocked} phase={zeroDayPhase} onAuthorize={handleAuthorizeZeroDay} />
             ) : null}
           </AnimatePresence>
