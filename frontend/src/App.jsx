@@ -75,6 +75,9 @@ function DashboardSection({ sessionTime, packetsIntercepted }) {
             <WarRoomStat label="CRITICAL THREATS" value={0} />
           </div>
         </header>
+        <div className="dashboard-defense-row">
+          <DefenseControls />
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -85,7 +88,6 @@ function DashboardSection({ sessionTime, packetsIntercepted }) {
 
         <div className="sidebar-frame panel-frame">
           <SecurityScoreRing />
-          <DefenseControls />
           <AttackButton />
         </div>
       </div>
@@ -133,6 +135,9 @@ export default function App() {
   return (
     <div className="siege-app">
       <CustomCursor />
+      <div className="orbital-grid-backdrop" />
+      <div className="orbital-atmosphere orbital-atmosphere-left" />
+      <div className="orbital-atmosphere orbital-atmosphere-right" />
       <div className="global-scanlines" />
       <div className="siege-vignette" />
       <AnimatePresence>
