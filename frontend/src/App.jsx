@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { AnimatePresence, animate, motion as Motion, useMotionValue } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, animate, useMotionValue } from "framer-motion";
 import Lenis from "lenis";
 import gsap from "gsap";
 import { TextPlugin } from "gsap/TextPlugin";
@@ -11,6 +11,7 @@ import CustomCursor from "./components/CustomCursor";
 import NetworkMap from "./components/NetworkMap";
 import AttackButton from "./components/AttackButton";
 import SecurityScoreRing from "./components/SecurityScoreRing";
+import DefenseControls from "./components/DefenseControls";
 import TerminalPanel from "./components/TerminalPanel";
 import IdsAlertStack from "./components/IdsAlertStack";
 import AnalyticsPanel from "./components/AnalyticsPanel";
@@ -22,7 +23,6 @@ import useSiegeStore from "./store/siegeStore";
 import useWebSocket from "./hooks/useWebSocket";
 import useSessionTimer from "./hooks/useSessionTimer";
 import usePacketCounter from "./hooks/usePacketCounter";
-import useAttackHandlers from "./hooks/useAttackHandlers";
 
 gsap.registerPlugin(TextPlugin);
 
@@ -53,43 +53,48 @@ function DashboardSection({ sessionTime, packetsIntercepted }) {
   const blockedCount = useSiegeStore(s => s.blockedCount);
   const isExporting = useSiegeStore(s => s.isExporting);
   const zeroDayActive = useSiegeStore(s => s.zeroDayActive);
-  const zeroDayPhase = useSiegeStore(s => s.zeroDayPhase);
-
-  const topMetrics = useMemo(() => [
-    { label: "Attack Sequences", value: attacksCount },
-    { label: "Successful Breaches", value: successCount },
-    { label: "Defenses Triggered", value: blockedCount },
-  ], [attacksCount, successCount, blockedCount]);
 
   return (
-    <div className={`siege-dashboard ${zeroDayActive ? "zero-day-tint" : ""}`}>
-      <header className="siege-header">
-        <div className="header-left">
-          <div className="siege-logo">SIEGE<span>v0.4.2</span></div>
-          <div className="header-stats">
-            {topMetrics.map((m, i) => <WarRoomStat key={i} label={m.label} value={m.value} pad={2} />)}
+    <section id="dashboard" className={`dashboard-section ${zeroDayActive ? "zero-day-dashboard-tint" : ""}`}>
+      <div className="dashboard-header-shell">
+        <header className="war-room-header panel-frame">
+          <div className="war-room-topline">
+            <div className="war-room-brand">
+              <span className="war-room-title">GLOBAL SECURITY POSTURE</span>
+              <div className="war-room-divider-bar" />
+              <span className="war-room-session-label">v3.9 // LIVE</span>
+            </div>
+            <div className="war-room-timer">RUNTIME: {sessionTime}</div>
           </div>
-        </div>
-        <div className="header-right">
-          <WarRoomStat label="Session Clock" value={0} suffix={sessionTime} />
-          <WarRoomStat label="Packets Captured" value={packetsIntercepted} />
-        </div>
-      </header>
+          <div className="war-room-progress-line"><span /></div>
+          <div className="war-room-stats">
+            <WarRoomStat label="ATTACK VECTORS" value={attacksCount} pad={2} />
+            <WarRoomStat label="SUCCESSFUL BREACHES" value={successCount} pad={2} />
+            <WarRoomStat label="DEFENSES TRIGGERED" value={blockedCount} pad={2} />
+            <WarRoomStat label="PACKETS INTERCEPTED" value={packetsIntercepted} />
+            <WarRoomStat label="CRITICAL THREATS" value={0} />
+          </div>
+        </header>
+      </div>
 
-      <main className="siege-grid">
-        <div className="grid-left">
+      <div className="dashboard-grid">
+        <div className="panel-frame map-stage">
+          <div className="hex-grid-overlay" />
           <NetworkMap />
         </div>
-        <div className="grid-right">
-          <div className="score-terminal-container">
-            <SecurityScoreRing />
-            <TerminalPanel />
-          </div>
+
+        <div className="sidebar-frame panel-frame">
+          <SecurityScoreRing />
+          <DefenseControls />
           <AttackButton />
         </div>
-      </main>
+      </div>
 
-      <AnalyticsPanel />
+      <div className="audit-log-center">
+        <TerminalPanel />
+      </div>
+
+      <AnalyticsPanel sessionTime={sessionTime} packetsIntercepted={packetsIntercepted} />
       <IdsAlertStack />
       <ZeroDayUnlock />
       <ZeroDayComplete />
@@ -100,13 +105,14 @@ function DashboardSection({ sessionTime, packetsIntercepted }) {
           <span>GENERATING COMPLIANCE REPORT...</span>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
 export default function App() {
   const showLoader = useSiegeStore(s => s.showLoader);
   const sessionStartTime = useSiegeStore(s => s.sessionStartTime);
+  const isScanning = useSiegeStore(s => s.isScanning);
   
   // Initialize Global Hooks
   useWebSocket();
@@ -120,6 +126,10 @@ export default function App() {
     return () => lenis.destroy();
   }, []);
 
+  const handleScrollToDashboard = () => {
+    document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="siege-app">
       <CustomCursor />
@@ -128,7 +138,7 @@ export default function App() {
       <AnimatePresence>
         {showLoader && <LoadingScreen />}
       </AnimatePresence>
-      <HeroSection />
+      <HeroSection onScrollDown={handleScrollToDashboard} isScanning={isScanning} />
       <DashboardSection sessionTime={sessionTime} packetsIntercepted={packetsIntercepted} />
     </div>
   );

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, memo } from "react";
 import * as d3 from "d3";
 import gsap from "gsap";
 import { API_BASE_URL } from "../config";
+import useSiegeStore from "../store/siegeStore";
 
 const NODE_COLORS = {
   router: "#41ff9b",
@@ -33,6 +34,8 @@ const NetworkMap = memo(function NetworkMap() {
   const sqlInjectionTarget = store.sqlInjectionTarget;
   const injectedNodeId = store.injectedNodeId;
   const ddosTarget = store.ddosTarget;
+  const ddosStatus = store.ddosStatus;
+  const lastAttackEvent = store.lastAttackEvent;
   const crashedNodeId = store.crashedNodeId;
   const firewallEnabled = store.firewallEnabled;
   const zeroDayActive = store.zeroDayActive;

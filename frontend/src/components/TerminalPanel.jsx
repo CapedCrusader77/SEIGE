@@ -1,5 +1,4 @@
 import { memo, useEffect, useRef } from "react";
-import { motion as Motion } from "framer-motion";
 import useSiegeStore from "../store/siegeStore";
 
 const TerminalPanel = memo(function TerminalPanel() {
@@ -14,42 +13,43 @@ const TerminalPanel = memo(function TerminalPanel() {
   }, [logs]);
 
   return (
-    <div className="terminal-panel">
-      <div className="panel-header">
-        <div className="header-left">
-          <div className="terminal-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 17l6-6-6-6" />
-              <path d="M12 19h8" />
-            </svg>
-          </div>
-          <span>LIVE AUDIT LOG</span>
-        </div>
-        <button className="clear-logs-btn" onClick={clearLogs}>
-          CLEAR
-        </button>
-      </div>
-
-      <div className="terminal-scroller" ref={scrollRef}>
-        {logs.length === 0 ? (
-          <div className="terminal-empty">WAITING FOR COMPROMISE VECTOR...</div>
-        ) : (
-          logs.map((log, i) => (
-            <div key={i} className={`terminal-line ${log.type || "info"}`}>
-              <span className="line-time">[{log.timestamp}]</span>
-              <span className="line-tag">[{log.tag}]</span>
-              <span className="line-text">{log.text}</span>
+    <div className="terminal-shell">
+      <div className="panel-frame terminal-frame">
+        <div className="terminal-panel-wrapper">
+          <div className="terminal-header">
+            <div className="terminal-dots">
+              <span className="terminal-dot red" />
+              <span className="terminal-dot amber" />
+              <span className="terminal-dot green" />
             </div>
-          ))
-        )}
-      </div>
+            <div className="terminal-header-title">LIVE AUDIT LOG</div>
+            <div className="terminal-header-actions">
+              <button className="terminal-action" onClick={clearLogs}>CLEAR</button>
+            </div>
+          </div>
 
-      <div className="terminal-footer">
-        <div className="footer-status">
-          <span className="status-dot pulsing" />
-          CONNECTION SECURE
+          <div className="terminal-panel" ref={scrollRef}>
+            <div className="terminal-content">
+              {logs.length === 0 ? (
+                <div className="terminal-empty">WAITING FOR COMPROMISE VECTOR...</div>
+              ) : (
+                logs.map((log, i) => (
+                  <div key={i} className="terminal-line">
+                    <span className="timestamp">[{log.timestamp}]</span>
+                    <span className={`tag ${log.type || "info"}`}>{log.tag}</span>
+                    <span className="terminal-text">{log.text}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="terminal-footer">
+            <div className="terminal-footer-prompt">&gt;_ sys.listen()</div>
+            <div className="terminal-footer-bar">CONNECTION SECURE</div>
+            <span>UTF-8 // AES-256-GCM</span>
+          </div>
         </div>
-        <div className="footer-meta">UTF-8 // AES-256-GCM</div>
       </div>
     </div>
   );
