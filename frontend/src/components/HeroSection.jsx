@@ -31,6 +31,7 @@ export default function HeroSection({ onScrollDown, isScanning }) {
 
   return (
     <section className="hero-section">
+      <div className="hero-orbital-shell" />
       <div className="hero-particles">
         <ParticleField />
       </div>
@@ -50,7 +51,12 @@ export default function HeroSection({ onScrollDown, isScanning }) {
 
       <div className="hero-copy">
         <div className="eyebrow">Cinematic Cyberwar Interface</div>
-        <h1>SIEGE</h1>
+        <div className="hero-command-kicker">
+          <span>ORBITAL COMMAND</span>
+          <span className="hero-command-divider" />
+          <span>{isScanning ? "ENGAGEMENT LIVE" : "SYSTEM ARMED"}</span>
+        </div>
+        <h1 className="siege-logo" data-text="SIEGE">SIEGE</h1>
         <p ref={subtitleRef} className="hero-subtitle">
           INITIALIZING NETWORK...
         </p>
@@ -62,6 +68,10 @@ export default function HeroSection({ onScrollDown, isScanning }) {
           <div className="hero-meta-card">
             <span>Runtime</span>
             <strong>REAL-TIME WEBSOCKET FEED</strong>
+          </div>
+          <div className="hero-meta-card hero-meta-card-accent">
+            <span>Vector Lattice</span>
+            <strong>LOW-LATENCY TACTICAL SURFACE</strong>
           </div>
         </div>
       </div>

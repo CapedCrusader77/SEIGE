@@ -8,14 +8,14 @@ const DefenseControls = memo(function DefenseControls() {
   const { toggleDefense } = useAttackHandlers();
 
   return (
-    <div className="defense-controls-panel panel-frame">
-      <div className="panel-header compact" style={{ paddingBottom: "1rem" }}>
+    <div className="defense-controls-panel command-subpanel">
+      <div className="panel-header compact defense-panel-header">
         <div>
-          <span className="eyebrow">Controls</span>
-          <h3 style={{ fontSize: "1rem" }}>DEFENSE SYSTEMS</h3>
+          <span className="eyebrow">Defense Layer</span>
+          <h3 className="defense-title">DEFENSE SYSTEMS</h3>
         </div>
       </div>
-      <div className="defense-toggle-row" style={{ marginTop: 0 }}>
+      <div className="defense-toggle-row defense-toggle-grid">
         <button 
           type="button" 
           className={`defense-toggle ${firewallEnabled ? "active" : ""}`} 
