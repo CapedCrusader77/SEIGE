@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion as Motion } from "framer-motion";
 import gsap from "gsap";
 import { TextPlugin } from "gsap/TextPlugin";
-
+import useSiegeStore from "../store/siegeStore";
 gsap.registerPlugin(TextPlugin);
 
 const FINAL_TITLE = "SIEGE";
@@ -18,6 +18,7 @@ const scrambleTitle = (progress) => {
 };
 
 export default function LoadingScreen() {
+  const hideLoader = useSiegeStore((s) => s.hideLoader);
   const titleRef = useRef(null);
   const subtitleRef = useRef(null);
   const barRef = useRef(null);
@@ -124,6 +125,9 @@ export default function LoadingScreen() {
       delay: 3.3,
       ease: "none",
       onUpdate: () => setStats((prev) => ({ ...prev, vectors: Math.floor(state.vectors) })),
+      onComplete: () => {
+        setTimeout(hideLoader, 800);
+      }
     });
 
     return () => timeline.kill();

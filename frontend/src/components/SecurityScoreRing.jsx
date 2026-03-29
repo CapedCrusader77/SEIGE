@@ -28,46 +28,55 @@ const SecurityScoreRing = memo(function SecurityScoreRing() {
     return "var(--red)";
   };
 
+  const circumference = 2 * Math.PI * 40; // r=40
+  const dashOffset = circumference - (circumference * displayScore) / 100;
+
   return (
-    <div className="security-score-card">
-      <div className="card-header">
-        <span className="status-label">GLOBAL SECURITY POSTURE</span>
-        <span className="status-meta">v3.9 // LIVE</span>
-      </div>
+    <div className={`score-ring-shell ${displayScore <= 20 ? 'danger' : ''}`}>
+      <svg className="score-ring-svg" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="ring-gradient-green" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#41ff9b" />
+            <stop offset="100%" stopColor="#128a4b" />
+          </linearGradient>
+          <linearGradient id="ring-gradient-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffb141" />
+            <stop offset="100%" stopColor="#9e6200" />
+          </linearGradient>
+          <linearGradient id="ring-gradient-red" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff5b5b" />
+            <stop offset="100%" stopColor="#870000" />
+          </linearGradient>
+        </defs>
 
-      <div className="score-main">
-        <div className="score-ring-container">
-          <svg className="score-ring-svg" viewBox="0 0 100 100">
-            <circle className="ring-bg" cx="50" cy="50" r="44" />
-            <Motion.circle
-              className="ring-progress"
-              cx="50"
-              cy="50"
-              r="44"
-              initial={{ pathLength: 1 }}
-              animate={{ pathLength: displayScore / 100 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              style={{ stroke: getScoreColor(displayScore) }}
-            />
-          </svg>
-          <div className="score-value-container">
-            <span className="score-value">{displayScore}</span>
-            <span className="score-percent">%</span>
-          </div>
-        </div>
+        {/* Background dotted track */}
+        <circle className="score-ring-track" cx="50" cy="50" r="40" strokeDasharray="3 4" />
 
-        <div className="score-details">
-          <div className="detail-status" style={{ color: getScoreColor(displayScore) }}>
-            {getScoreStatus(displayScore)}
-          </div>
-          <p className="detail-summary">
-            Real-time aggregate metric of network integrity, firewall effectiveness, and node stability.
-          </p>
-          <div className="detail-meta">
-            <span>UPTIME: 14:02:11</span>
-            <span>LATENCY: 12ms</span>
-          </div>
-        </div>
+        {/* Dynamic bright ring passing over */}
+        <Motion.circle
+          className="score-ring-progress"
+          cx="50"
+          cy="50"
+          r="40"
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: dashOffset }}
+          style={{ strokeDasharray: circumference }}
+          stroke={
+            displayScore > 75
+              ? "url(#ring-gradient-green)"
+              : displayScore > 45
+              ? "url(#ring-gradient-amber)"
+              : "url(#ring-gradient-red)"
+          }
+        />
+        
+        {/* Adaptive inner surface to blend with surrounding panel */}
+        <circle className="score-ring-core" cx="50" cy="50" r="31" />
+      </svg>
+      <div className="score-ring-center">
+        <span>{displayScore}</span>
+        <small style={{ color: getScoreColor(displayScore) }}>{getScoreStatus(displayScore)}</small>
+        <div className="score-ring-label">POSTURE ALIGNMENT</div>
       </div>
     </div>
   );

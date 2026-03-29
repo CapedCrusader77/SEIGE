@@ -1,5 +1,6 @@
 import useSiegeStore from '../store/siegeStore';
 import { API_BASE_URL, CONTROL_API_HEADERS } from '../config';
+import { ATTACK_STYLES } from '../constants';
 
 /**
  * useAttackHandlers - Hook to centralize attack triggering logic.
@@ -19,7 +20,7 @@ export default function useAttackHandlers() {
     }
     if (type === "ddos") store.crashNode(null);
 
-    store.triggerEdgeFlash(store.ATTACK_STYLES?.[type]?.flash || "rgba(255,0,0,0.2)");
+    store.triggerEdgeFlash(ATTACK_STYLES[type]?.flash || "rgba(255,0,0,0.2)");
     
     try {
       await fetch(`${API_BASE_URL}/attack/${type}`, {
