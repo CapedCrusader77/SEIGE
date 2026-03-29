@@ -70,8 +70,6 @@ const SecurityScoreRing = memo(function SecurityScoreRing() {
           }
         />
         
-        {/* Adaptive inner surface to blend with surrounding panel */}
-        <circle className="score-ring-core" cx="50" cy="50" r="31" />
       </svg>
       <div className="score-ring-center">
         <span>{displayScore}</span>

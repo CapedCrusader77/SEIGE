@@ -278,17 +278,29 @@ button, input, textarea, select { font: inherit; }
   display: grid;
   place-items: center;
   padding: 0.8rem 0.4rem 0.45rem;
-  background: transparent;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 .score-ring-shell::after {
   content: none;
 }
-.score-ring-svg { width: min(100%, 240px); transform: rotate(-90deg); }
+.score-ring-svg {
+  width: min(100%, 240px);
+  transform: rotate(-90deg);
+  overflow: visible;
+  background: transparent !important;
+  filter: none !important;
+}
 .score-ring-track, .score-ring-progress { fill: none; stroke-width: 12; stroke-linecap: round; }
 .score-ring-track { stroke: color-mix(in srgb, var(--line) 42%, transparent); }
-.score-ring-progress { filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 65%, transparent)); transition: stroke .4s var(--premium-ease); }
-.score-ring-core { fill: color-mix(in srgb, var(--panel) 70%, transparent); }
-.score-ring-center { position: absolute; display: flex; flex-direction: column; align-items: center; }
+.score-ring-progress { filter: none !important; transition: stroke .4s var(--premium-ease); }
+.score-ring-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent !important;
+}
 .score-ring-center span { font-size: clamp(2.4rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: -0.06em; line-height: 1.1; }
 .score-ring-center small { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; margin-top: 0.2rem; }
 .score-ring-label { margin-top: 0.5rem; font-size: 0.5rem; font-family: "Space Mono", monospace; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.28em; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.4rem; }
