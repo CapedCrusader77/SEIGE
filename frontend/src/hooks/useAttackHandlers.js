@@ -27,7 +27,7 @@ export default function useAttackHandlers() {
         method: "POST",
         headers: CONTROL_API_HEADERS,
       });
-    } catch (err) {
+    } catch {
       store.addLog("ERROR", `Failed to connect to backend: ${type}`, "danger");
     }
   };
@@ -45,7 +45,7 @@ export default function useAttackHandlers() {
         method: "POST",
         headers: CONTROL_API_HEADERS,
       });
-    } catch (err) {
+    } catch {
       store.addLog("ERROR", "Failed to initiate attack chain", "danger");
     }
   };

@@ -38,7 +38,13 @@ const ZeroDayComplete = memo(function ZeroDayComplete() {
   useEffect(() => {
     if (!visible) return;
 
-    const counterState = { ...displayStats, threat: 0 };
+    const counterState = {
+      nodes_compromised: 0,
+      credentials_stolen: 0,
+      firewall_rules_bypassed: 0,
+      detection_evasions: 0,
+      threat: 0,
+    };
     const timeline = gsap.timeline();
 
     const updateStats = () => {

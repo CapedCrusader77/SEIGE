@@ -10,7 +10,6 @@ import { NODE_LABELS } from '../constants';
  */
 export default function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
-  const store = useSiegeStore();
   const reconnectTimeoutRef = useRef(null);
   const wsRef = useRef(null);
 
@@ -21,12 +20,13 @@ export default function useWebSocket() {
 
       ws.onopen = () => {
         setIsConnected(true);
-        store.addLog("SYSTEM", "WebSocket connected", "success");
+        useSiegeStore.getState().addLog("SYSTEM", "WebSocket connected", "success");
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          const store = useSiegeStore.getState();
           
           // 1. Add to global history
           store.addHistoryEvent({

@@ -15,7 +15,6 @@ import {
   YAxis,
 } from "recharts";
 import useSiegeStore from "../store/siegeStore";
-import useAttackHandlers from "../hooks/useAttackHandlers";
 import { generateSessionReport } from "../utils/reportGenerator";
 
 const CHART_COLORS = ["#41ff9b", "#ffb141", "#c074ff", "#ff5b5b", "#55c7ff", "#ff7a31"];
@@ -38,10 +37,10 @@ const AnalyticsPanel = memo(function AnalyticsPanel({ sessionTime, packetsInterc
   const successCount = store.successCount;
   const blockedCount = store.blockedCount;
   const compromisedNodeIds = [...store.compromisedNodeIds];
-  const securityScoreTimeline = store.securityScoreTimeline || [];
-  const breachTimes = store.breachTimes || [];
-  const nodeHitCounts = store.nodeHitCounts || {};
-  const sessionEvents = store.sessionEvents || [];
+  const securityScoreTimeline = store.securityScoreTimeline;
+  const breachTimes = store.breachTimes;
+  const nodeHitCounts = store.nodeHitCounts;
+  const sessionEvents = store.sessionEvents;
   const historyEvents = store.historyEvents || [];
   const securityScore = store.securityScore;
   const isExporting = store.isExporting;
@@ -52,8 +51,9 @@ const AnalyticsPanel = memo(function AnalyticsPanel({ sessionTime, packetsInterc
 
   const attackMix = useMemo(() => {
     const counts = new Map();
+    const events = sessionEvents ?? [];
 
-    sessionEvents.forEach((event) => {
+    events.forEach((event) => {
       if (!event.attack || event.phase !== "ATTACK_START") {
         return;
       }
@@ -65,7 +65,7 @@ const AnalyticsPanel = memo(function AnalyticsPanel({ sessionTime, packetsInterc
 
   const nodePressure = useMemo(
     () =>
-      Object.entries(nodeHitCounts)
+      Object.entries(nodeHitCounts ?? {})
         .map(([node, hits]) => ({
           node: node.replace("webserver", "web").replace("database", "db").replace("firewall", "fw"),
           hits,
@@ -76,11 +76,12 @@ const AnalyticsPanel = memo(function AnalyticsPanel({ sessionTime, packetsInterc
   );
 
   const scoreTrend = useMemo(() => {
-    if (securityScoreTimeline.length === 0) {
+    const timeline = securityScoreTimeline ?? [];
+    if (timeline.length === 0) {
       return [{ step: "Start", score: 100 }];
     }
 
-    return securityScoreTimeline.map((point, index) => ({
+    return timeline.map((point, index) => ({
       step: index + 1,
       score: point.score,
       event: point.event,
@@ -88,11 +89,12 @@ const AnalyticsPanel = memo(function AnalyticsPanel({ sessionTime, packetsInterc
   }, [securityScoreTimeline]);
 
   const meanTimeToCompromise = useMemo(() => {
-    if (breachTimes.length < 1 || !store.sessionStartTime) {
+    const breaches = breachTimes ?? [];
+    if (breaches.length < 1 || !store.sessionStartTime) {
       return 0;
     }
 
-    const durations = breachTimes.map((entry) => Math.max(0, (entry.timestamp - store.sessionStartTime) / 1000));
+    const durations = breaches.map((entry) => Math.max(0, (entry.timestamp - store.sessionStartTime) / 1000));
     return durations.reduce((sum, value) => sum + value, 0) / durations.length;
   }, [breachTimes, store.sessionStartTime]);
 

@@ -77,7 +77,7 @@ const AttackButton = memo(function AttackButton() {
 
       <div className="attack-button-stack">
         {attackDefinitions.map((attack, index) => {
-          const isFiring = lastAttackEvent?.type === attack.id && (Date.now() - lastAttackEvent.timestamp < 3000) && (isScanning || attackChainActive);
+          const isFiring = lastAttackEvent?.type === attack.id && (isScanning || attackChainActive);
           return (
             <button
               key={attack.id}
