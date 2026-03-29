@@ -756,7 +756,7 @@ COMMANDS.ids = {
         }
         break;
 
-      case 'alerts':
+      case 'alerts': {
         const alerts = state.idsAlerts || [];
         if (alerts.length === 0) {
           outputLine('No active IDS alerts', 'info');
@@ -771,6 +771,7 @@ COMMANDS.ids = {
           });
         }
         break;
+      }
 
       default:
         outputLine(`ids: unknown action "${action}"`, 'error');
@@ -1047,7 +1048,7 @@ COMMANDS.cat = {
   usage: 'cat [file]',
   examples: ['cat /etc/passwd'],
   handler: async (parsed, context) => {
-    const { outputLine, delay, args } = parsed;
+    const { args } = parsed;
 
     const file = args[0];
     if (!file) {
@@ -1078,7 +1079,7 @@ COMMANDS.sudo = {
   usage: 'sudo [command]',
   examples: ['sudo rm -rf /'],
   handler: async (parsed, context) => {
-    const { outputLine, delay, args } = parsed;
+    const { args } = parsed;
 
     const command = args.join(' ');
 

@@ -24,7 +24,7 @@
 */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import useSiegeStore from '../store/siegeStore';
 import { parseCommand, suggestCommands } from '../utils/commandParser';
 import { getCommand, getAllCommandNames, getAllTargetNames } from '../utils/commands';
@@ -43,7 +43,6 @@ export default function SiegeREPL({ isOpen, onClose }) {
   const [commandHistory, setCommandHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [tabPressCount, setTabPressCount] = useState(0);
   const [lastTabTime, setLastTabTime] = useState(0);
 
   const inputRef = useRef(null);
