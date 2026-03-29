@@ -39,7 +39,7 @@ const NetworkMap = memo(function NetworkMap() {
   const crashedNodeId = store.crashedNodeId;
   const firewallEnabled = store.firewallEnabled;
   const zeroDayActive = store.zeroDayActive;
-  const nodeHitCounts = store.nodeHitCounts || {};
+  const nodeHitCounts = store.nodeHitCounts;
 
   const svgRef = useRef(null);
   const particlesRef = useRef(null);
@@ -51,7 +51,7 @@ const NetworkMap = memo(function NetworkMap() {
 
   const getHeatmapIntensity = useCallback(
     (nodeId) => {
-      const hitCount = nodeHitCounts[nodeId] || 0;
+      const hitCount = nodeHitCounts?.[nodeId] || 0;
       return Math.min(1, hitCount / 10);
     },
     [nodeHitCounts],

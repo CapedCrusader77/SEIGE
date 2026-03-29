@@ -131,7 +131,7 @@ export default function LoadingScreen() {
     });
 
     return () => timeline.kill();
-  }, []);
+  }, [hideLoader]);
 
   return (
     <Motion.div

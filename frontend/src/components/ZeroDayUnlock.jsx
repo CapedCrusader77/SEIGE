@@ -3,29 +3,52 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import useZeroDay from "../hooks/useZeroDay";
 
 const ZeroDayUnlock = memo(function ZeroDayUnlock() {
-  const { zeroDayUnlocked, zeroDayPhase, handleAuthorize, refs } = useZeroDay();
+  const {
+    zeroDayUnlocked,
+    zeroDayPhase,
+    handleAuthorize,
+    overlayRef,
+    lineRef,
+    topTextRef,
+    bottomTextRef,
+    disabledRef,
+  } = useZeroDay();
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const holdTimerRef = useRef(null);
 
   useEffect(() => {
-    if (isHolding) {
-      const startTime = Date.now();
-      holdTimerRef.current = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / 3000, 1);
-        setHoldProgress(progress);
-        if (progress >= 1) {
-          clearInterval(holdTimerRef.current);
-          handleAuthorize();
-        }
-      }, 50);
-    } else {
-      clearInterval(holdTimerRef.current);
-      setHoldProgress(0);
-    }
     return () => clearInterval(holdTimerRef.current);
-  }, [isHolding, handleAuthorize]);
+  }, []);
+
+  const stopHolding = () => {
+    clearInterval(holdTimerRef.current);
+    holdTimerRef.current = null;
+    setIsHolding(false);
+    setHoldProgress(0);
+  };
+
+  const startHolding = () => {
+    if (holdTimerRef.current) {
+      return;
+    }
+
+    setIsHolding(true);
+    const startTime = Date.now();
+    holdTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / 3000, 1);
+      setHoldProgress(progress);
+
+      if (progress >= 1) {
+        clearInterval(holdTimerRef.current);
+        holdTimerRef.current = null;
+        setIsHolding(false);
+        setHoldProgress(0);
+        handleAuthorize();
+      }
+    }, 50);
+  };
 
   if (!zeroDayUnlocked && zeroDayPhase === null) return null;
 
@@ -48,10 +71,10 @@ const ZeroDayUnlock = memo(function ZeroDayUnlock() {
 
             <button
               className={`authorize-btn ${isHolding ? "holding" : ""}`}
-              onPointerDown={() => setIsHolding(true)}
-              onPointerUp={() => setIsHolding(false)}
-              onPointerLeave={() => setIsHolding(false)}
-              onPointerCancel={() => setIsHolding(false)}
+              onPointerDown={startHolding}
+              onPointerUp={stopHolding}
+              onPointerLeave={stopHolding}
+              onPointerCancel={stopHolding}
             >
               <div className="btn-background" style={{ transform: `scaleX(${holdProgress})` }} />
               <span className="btn-label">{isHolding ? "AUTHORIZING..." : "HOLD TO AUTHORIZE"}</span>
@@ -61,12 +84,12 @@ const ZeroDayUnlock = memo(function ZeroDayUnlock() {
       )}
 
       {zeroDayPhase === "executing" && (
-        <div className="zero-day-overlay-dim" ref={refs.overlay}>
+        <div className="zero-day-overlay-dim" ref={overlayRef}>
           <div className="zero-day-content">
-            <div className="zero-day-line" ref={refs.line} />
-            <div className="zero-day-text-top" ref={refs.topText} />
-            <div className="zero-day-text-bottom" ref={refs.bottomText} />
-            <div className="zero-day-disabled-status" ref={refs.disabled}>
+            <div className="zero-day-line" ref={lineRef} />
+            <div className="zero-day-text-top" ref={topTextRef} />
+            <div className="zero-day-text-bottom" ref={bottomTextRef} />
+            <div className="zero-day-disabled-status" ref={disabledRef}>
               FIREWALL DISABLED
             </div>
           </div>
