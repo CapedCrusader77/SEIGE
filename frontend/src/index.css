@@ -782,3 +782,256 @@ button, input, textarea, select { font: inherit; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SIEGE REPL — Interactive Terminal Overlay
+   Full-screen command-line interface with typewriter effects
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.siege-repl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: #050810;
+  font-family: "Space Mono", monospace;
+  color: rgba(237, 245, 255, 0.85);
+  overflow: hidden;
+}
+
+.siege-repl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: rgba(10, 18, 30, 0.95);
+  border-bottom: 1px solid rgba(143, 183, 226, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.siege-repl-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.siege-repl-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.siege-repl-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.siege-repl-dot.red { background: #ff5b5b; }
+.siege-repl-dot.amber { background: #ffb141; }
+.siege-repl-dot.green { background: #41ff9b; }
+
+.siege-repl-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(237, 245, 255, 0.9);
+}
+
+.siege-repl-status {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #41ff9b;
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.siege-repl-close {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(255, 91, 91, 0.3);
+  background: rgba(255, 91, 91, 0.1);
+  color: #ff5b5b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s var(--premium-ease);
+}
+
+.siege-repl-close:hover {
+  background: rgba(255, 91, 91, 0.2);
+  border-color: rgba(255, 91, 91, 0.5);
+  box-shadow: 0 0 12px rgba(255, 91, 91, 0.3);
+}
+
+.siege-repl-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  line-height: 1.6;
+  font-size: 0.9rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(65, 255, 155, 0.3) rgba(255, 255, 255, 0.05);
+}
+
+.siege-repl-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.siege-repl-output::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.siege-repl-output::-webkit-scrollbar-thumb {
+  background: rgba(65, 255, 155, 0.3);
+  border-radius: 4px;
+}
+
+.siege-repl-output::-webkit-scrollbar-thumb:hover {
+  background: rgba(65, 255, 155, 0.5);
+}
+
+.siege-repl-line {
+  margin-bottom: 0.25rem;
+  word-wrap: break-word;
+}
+
+.siege-repl-prompt {
+  color: #41ff9b;
+  font-weight: 700;
+  user-select: none;
+}
+
+.siege-repl-command {
+  color: rgba(237, 245, 255, 0.95);
+}
+
+.siege-repl-output-text {
+  color: rgba(237, 245, 255, 0.85);
+  white-space: pre-wrap;
+}
+
+.siege-repl-output-text.success {
+  color: #41ff9b;
+}
+
+.siege-repl-output-text.error {
+  color: #ff5b5b;
+}
+
+.siege-repl-output-text.warning {
+  color: #ffb141;
+}
+
+.siege-repl-output-text.info {
+  color: #55c7ff;
+}
+
+.siege-repl-output-text.danger {
+  color: #ff5b5b;
+  font-weight: 700;
+}
+
+.siege-repl-input-row {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: rgba(10, 18, 30, 0.8);
+  border-top: 1px solid rgba(143, 183, 226, 0.22);
+}
+
+.siege-repl-input {
+  flex: 1;
+  margin-left: 0.5rem;
+  border: none;
+  background: transparent;
+  color: rgba(237, 245, 255, 0.95);
+  font-family: "Space Mono", monospace;
+  font-size: 0.9rem;
+  outline: none;
+  caret-color: #41ff9b;
+}
+
+.siege-repl-input::placeholder {
+  color: rgba(237, 245, 255, 0.35);
+}
+
+.siege-repl-cursor {
+  display: inline-block;
+  width: 0.6rem;
+  height: 1.1rem;
+  margin-left: 0.1rem;
+  background: #41ff9b;
+  animation: cursorBlink 0.9s steps(1) infinite;
+}
+
+.siege-repl-empty {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(237, 245, 255, 0.4);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.siege-repl-autocomplete {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(65, 255, 155, 0.1);
+  border: 1px solid rgba(65, 255, 155, 0.3);
+  border-radius: 4px;
+  color: #41ff9b;
+  font-size: 0.85rem;
+}
+
+.siege-repl-autocomplete strong {
+  color: rgba(237, 245, 255, 0.95);
+}
+
+/* Animations */
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* Terminal button in dashboard header */
+.terminal-toggle-button {
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(65, 255, 155, 0.3);
+  background: rgba(65, 255, 155, 0.08);
+  color: #41ff9b;
+  font-family: "Space Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s var(--premium-ease);
+}
+
+.terminal-toggle-button:hover {
+  background: rgba(65, 255, 155, 0.15);
+  border-color: rgba(65, 255, 155, 0.5);
+  box-shadow: 0 0 16px rgba(65, 255, 155, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Special formatting for command output */
+.repl-table {
+  margin: 0.5rem 0;
+}
+
+.repl-separator {
+  color: rgba(237, 245, 255, 0.3);
+}
+
+.repl-highlight {
+  color: #41ff9b;
+  font-weight: 700;
+}

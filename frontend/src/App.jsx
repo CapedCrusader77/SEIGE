@@ -17,6 +17,7 @@ import IdsAlertStack from "./components/IdsAlertStack";
 import AnalyticsPanel from "./components/AnalyticsPanel";
 import ZeroDayUnlock from "./components/ZeroDayUnlock";
 import ZeroDayComplete from "./components/ZeroDayComplete";
+import SiegeREPL from "./components/SiegeREPL";
 
 // Store & Hooks
 import useSiegeStore from "./store/siegeStore";
@@ -47,7 +48,7 @@ function WarRoomStat({ label, value, suffix = "", pad = 0 }) {
   );
 }
 
-function DashboardSection({ sessionTime, packetsIntercepted }) {
+function DashboardSection({ sessionTime, packetsIntercepted, onOpenRepl }) {
   const attacksCount = useSiegeStore(s => s.attacksCount);
   const successCount = useSiegeStore(s => s.successCount);
   const blockedCount = useSiegeStore(s => s.blockedCount);
@@ -64,7 +65,12 @@ function DashboardSection({ sessionTime, packetsIntercepted }) {
               <div className="war-room-divider-bar" />
               <span className="war-room-session-label">v3.9 // LIVE</span>
             </div>
-            <div className="war-room-timer">RUNTIME: {sessionTime}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button className="terminal-toggle-button" onClick={onOpenRepl}>
+                &gt;_ TERMINAL
+              </button>
+              <div className="war-room-timer">RUNTIME: {sessionTime}</div>
+            </div>
           </div>
           <div className="war-room-progress-line"><span /></div>
           <div className="war-room-stats">
@@ -116,6 +122,9 @@ export default function App() {
   const sessionStartTime = useSiegeStore(s => s.sessionStartTime);
   const isScanning = useSiegeStore(s => s.isScanning);
   
+  // REPL state
+  const [isReplOpen, setIsReplOpen] = useState(false);
+  
   // Initialize Global Hooks
   useWebSocket();
   const { sessionTime } = useSessionTimer(sessionStartTime);
@@ -128,8 +137,36 @@ export default function App() {
     return () => lenis.destroy();
   }, []);
 
+  // Backtick key toggle for REPL
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Backtick key (`) toggles REPL
+      if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Don't toggle if user is typing in an input/textarea
+        const target = e.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return;
+        }
+        
+        e.preventDefault();
+        setIsReplOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleScrollToDashboard = () => {
     document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleOpenRepl = () => {
+    setIsReplOpen(true);
+  };
+
+  const handleCloseRepl = () => {
+    setIsReplOpen(false);
   };
 
   return (
@@ -144,7 +181,12 @@ export default function App() {
         {showLoader && <LoadingScreen />}
       </AnimatePresence>
       <HeroSection onScrollDown={handleScrollToDashboard} isScanning={isScanning} />
-      <DashboardSection sessionTime={sessionTime} packetsIntercepted={packetsIntercepted} />
+      <DashboardSection 
+        sessionTime={sessionTime} 
+        packetsIntercepted={packetsIntercepted}
+        onOpenRepl={handleOpenRepl}
+      />
+      <SiegeREPL isOpen={isReplOpen} onClose={handleCloseRepl} />
     </div>
   );
 }
