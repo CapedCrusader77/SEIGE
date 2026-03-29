@@ -63,12 +63,14 @@ flowchart LR
 | POST | /attack/chain | Start chained scenario |
 | POST | /defense/firewall/toggle | Toggle firewall |
 | POST | /defense/ids/toggle | Toggle IDS |
-| GET | /history/events?limit=100 | Fetch recent persisted events |
-| WS | /ws | Real-time event stream |
+| GET | /history/events?limit=100 | Fetch recent persisted events (auth optional by mode) |
+| WS | /ws | Real-time event stream (auth optional by mode) |
 
 ## Security and Control Plane
 
-By default, local development is open for convenience. You can protect control endpoints (attack and defense toggles) with API key auth.
+By default, SIEGE runs in open demo mode for frictionless access (no frontend key prompt).
+
+If you want hardened mode, enable API key auth on the backend and configure the same key for frontend HTTP control calls.
 
 Set these environment variables:
 
@@ -78,7 +80,12 @@ SIEGE_API_KEY=your-secret-key
 VITE_API_KEY=your-secret-key
 ```
 
-When enabled, requests must include the x-api-key header.
+Behavior by mode:
+
+- Open demo mode: `SIEGE_REQUIRE_API_KEY=false` (default)
+- Hardened mode: `SIEGE_REQUIRE_API_KEY=true`
+
+When hardened mode is enabled, protected HTTP endpoints require the `x-api-key` header.
 
 ## Quick Start
 
@@ -114,6 +121,15 @@ Open:
 ### Option C (Docker)
 
 ```powershell
+docker compose up --build
+```
+
+Default `docker-compose.yml` is configured for open demo mode.
+
+To run hardened mode with Docker:
+
+```powershell
+$env:SIEGE_API_KEY="replace-with-strong-key"
 docker compose up --build
 ```
 
