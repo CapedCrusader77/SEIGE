@@ -262,6 +262,7 @@ export default function useWebSocket() {
 
       ws.onclose = () => {
         setIsConnected(false);
+
         reconnectTimeoutRef.current = window.setTimeout(connectWebSocket, 3000);
       };
     };

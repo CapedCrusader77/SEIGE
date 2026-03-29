@@ -1,3 +1,7 @@
+import os
+
+os.environ["SIEGE_REQUIRE_API_KEY"] = "false"
+
 from fastapi.testclient import TestClient
 
 from main import app
