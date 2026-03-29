@@ -56,6 +56,7 @@ export default function useAttackHandlers() {
         method: "POST",
         headers: CONTROL_API_HEADERS,
       });
+
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     } catch (err) {
       console.error(`Defense toggle ${type} failed:`, err);

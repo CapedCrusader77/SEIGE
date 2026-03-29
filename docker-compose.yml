@@ -11,10 +11,15 @@ services:
       SIEGE_PORT: "8000"
       SIEGE_DB_PATH: "/data/siege_history.db"
       SIEGE_REQUIRE_API_KEY: "false"
-      SIEGE_API_KEY: ""
       SIEGE_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
     volumes:
       - siege_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build:
@@ -22,11 +27,17 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: "http://localhost:8000"
-      VITE_WS_URL: "ws://localhost:8000"
-      VITE_API_KEY: ""
+      VITE_API_URL: "http://backend:8000"
+      VITE_WS_URL: "ws://backend:8000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5173 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   siege_data:

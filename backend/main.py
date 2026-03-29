@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from siege.config import ALLOWED_ORIGINS, BACKEND_HOST, BACKEND_PORT, LINKS, NODES
 from siege.connection_manager import manager
 from siege.persistence import get_recent_events, init_db
-from siege.security import protect_control_plane
+from siege.security import get_control_plane_auth_error, protect_control_plane
 from siege.simulations import (
     simulate_attack_chain,
     simulate_brute_force,
@@ -28,8 +28,9 @@ app = FastAPI(title="Siege API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
+    allow_headers=["*", "x-api-key"],
+    allow_credentials=True,
 )
 
 
@@ -128,7 +129,7 @@ async def toggle_ids(_auth: None = Depends(protect_control_plane)) -> Dict[str, 
 
 
 @app.get("/history/events")
-def get_history_events(limit: int = Query(default=100, ge=1, le=500)) -> Dict[str, Any]:
+def get_history_events(limit: int = Query(default=100, ge=1, le=500), _auth: None = Depends(protect_control_plane)) -> Dict[str, Any]:
     return {
         "events": get_recent_events(limit),
         "count": limit,
@@ -137,6 +138,12 @@ def get_history_events(limit: int = Query(default=100, ge=1, le=500)) -> Dict[st
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
+    auth_error = get_control_plane_auth_error(websocket.query_params.get("api_key"))
+    if auth_error:
+        close_code = 1011 if "not configured" in auth_error else 1008
+        await websocket.close(code=close_code, reason=auth_error)
+        return
+
     await manager.connect(websocket)
     try:
         while True:

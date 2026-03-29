@@ -3,16 +3,25 @@ from fastapi import Header, HTTPException, status
 from siege.config import API_KEY, REQUIRE_API_KEY
 
 
-def protect_control_plane(x_api_key: str | None = Header(default=None)) -> None:
-    # Keep local development frictionless unless explicitly enabled.
+def get_control_plane_auth_error(provided_api_key: str | None) -> str | None:
     if not REQUIRE_API_KEY:
-        return
+        return None
 
     if not API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="API key protection is enabled but SIEGE_API_KEY is not configured",
-        )
+        return "API key protection is enabled but SIEGE_API_KEY is not configured"
 
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+    if provided_api_key != API_KEY:
+        return "Invalid API key"
+
+    return None
+
+
+def protect_control_plane(x_api_key: str | None = Header(default=None)) -> None:
+    error = get_control_plane_auth_error(x_api_key)
+    if error is None:
+        return
+
+    if "not configured" in error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error)
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error)
